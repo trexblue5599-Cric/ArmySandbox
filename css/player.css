@@ -1,0 +1,44 @@
+/* player.css */
+#joystick-base {
+  position: fixed;
+  left: 25px;
+  bottom: 40px;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  touch-action: none;
+  z-index: 10;
+}
+
+#joystick-knob {
+  position: fixed;
+  left: 60px;
+  bottom: 75px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+  z-index: 11;
+}
+
+#fire-btn {
+  position: fixed;
+  right: 30px;
+  bottom: 55px;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: rgba(255, 60, 60, 0.6);
+  color: #fff;
+  font-weight: bold;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  z-index: 10;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  transition: background 0.2s;
+                   }
