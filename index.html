@@ -4,15 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Army Sandbox</title>
-  <link rel="stylesheet" href="style.css">
+  
+  <!-- Load CSS from the css folder -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/world.css">
+  <link rel="stylesheet" href="css/player.css">
+  <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
-  <!-- 1. Load Three.js first -->
+  <!-- Load Three.js (from CDN) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   
-  <!-- 2. Load your game files in order -->
-  <script src="world.js"></script>
-  <script src="player.js"></script>
-  <script src="game.js"></script>
+  <!-- Load JS from the js folder -->
+  <script src="js/world.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/game.js"></script>
 </body>
 </html>
