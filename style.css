@@ -4,7 +4,7 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #87ceeb;
+  background-color: #87ceeb; /* Fallback sky blue background */
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
@@ -12,8 +12,13 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Force the Three.js canvas to fill the entire screen */
 canvas {
   display: block;
-  width: 100%;
-  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
 }
