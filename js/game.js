@@ -36,10 +36,10 @@ function createExplosion(pos, color = 0xff5500, scale = 1) {
   }
 }
 
-// --- NEW: Camera Variables for 3rd Person ---
+// Camera variables
 const cameraTarget = new THREE.Vector3();
 const cameraPositionTarget = new THREE.Vector3();
-let cameraAngle = 0; // Tracks where the camera should look
+world.cameraAngle = 0; 
 
 const clock = new THREE.Clock();
 
@@ -52,10 +52,8 @@ function loop() {
   // --- ENEMY AI ---
   for (let e of world.enemies) {
     if (!e.alive) continue;
-
-    const targetPos = player.isDriving ? world.tank.position : player.soldier.position;
-    const dx = targetPos.x - e.mesh.position.x;
-    const dz = targetPos.z - e.mesh.position.z;
+    const dx = player.soldier.position.x - e.mesh.position.x;
+    const dz = player.soldier.position.z - e.mesh.position.z;
     const distance = Math.hypot(dx, dz);
 
     if (distance < 100 && distance > 1.8) {
@@ -68,21 +66,17 @@ function loop() {
       e.mesh.scale.set(1, 1, 1);
     }
 
-    if (distance <= 1.8 && !player.isDriving) {
+    if (distance <= 1.8) {
       e.attackCooldown -= dt;
       if (e.attackCooldown <= 0) {
         player.health -= 10;
         e.attackCooldown = 1.0;
         updateHealthUI();
-        
-        e.mesh.scale.set(1.2, 1.2, 1.2);
-        createExplosion(targetPos, 0xff0000, 1.5);
-        
+        createExplosion(player.soldier.position, 0xff0000, 1.5);
         document.body.style.backgroundColor = '#ffaaaa';
         setTimeout(() => { document.body.style.backgroundColor = '#87ceeb'; }, 100);
-        
         if (player.health <= 0) {
-          alert("You were defeated by the Toy Army!");
+          alert("You were defeated!");
           player.health = 100;
           player.soldier.position.set(0, 0, 0);
           updateHealthUI();
@@ -98,34 +92,18 @@ function loop() {
     b.userData.life -= dt;
     
     let bulletRemoved = false;
-    
     for (let e of world.enemies) {
       if (!e.alive) continue;
-      const dist = b.position.distanceTo(e.position);
-      const hitRadius = b.userData.isShell ? 2.5 : 1.0;
-      
-      if (dist < hitRadius) { 
-        if (b.userData.isShell) {
-          createExplosion(e.position, 0xff0000, 2);
-          world.enemies.forEach(otherE => {
-            if (otherE.alive && otherE.position.distanceTo(e.position) < 4) {
-              otherE.alive = false;
-              world.scene.remove(otherE.mesh);
-            }
-          });
-        } else {
-          e.alive = false;
-          world.scene.remove(e.mesh);
-          createExplosion(e.position, 0xff5500, 1);
-        }
-        
+      if (b.position.distanceTo(e.position) < 1.0) { 
+        e.alive = false;
+        world.scene.remove(e.mesh);
+        createExplosion(e.position, 0xff5500, 1);
         world.scene.remove(b);
         player.bullets.splice(i, 1);
         bulletRemoved = true;
         break; 
       }
     }
-    
     if (bulletRemoved) continue;
     if (b.userData.life <= 0) {
       world.scene.remove(b);
@@ -146,35 +124,27 @@ function loop() {
     }
   }
 
-  // --- NEW: GTA STYLE 3RD PERSON CAMERA ---
-  // The camera will position itself behind the player based on where they are facing
-  
-  const targetX = player.soldier.position.x;
-  const targetZ = player.soldier.position.z;
-  
-  // Smoothly rotate the camera to match the player's rotation
+  // --- 3RD PERSON CAMERA ---
+  // Follow the player's rotation
   let targetAngle = player.soldier.rotation.y;
-  let angleDiff = targetAngle - cameraAngle;
+  let angleDiff = targetAngle - world.cameraAngle;
   while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
   while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-  cameraAngle += angleDiff * 5 * dt; // Lower number = slower camera turning
+  
+  // Smoothly update the global camera angle
+  world.cameraAngle += angleDiff * 3 * dt; 
 
-  // Calculate where the camera should be (Behind the player)
-  // 8 is the distance behind, 4 is the height
   const camDistance = 8;
-  const camHeight = 4.5;
+  const camHeight = 5;
 
-  // Math.sin and Math.cos calculate the "behind" position based on the angle
-  const camX = targetX - Math.sin(cameraAngle) * camDistance;
-  const camZ = targetZ - Math.cos(cameraAngle) * camDistance;
+  // Calculate camera position BEHIND the player based on the angle
+  const camX = player.soldier.position.x - Math.sin(world.cameraAngle) * camDistance;
+  const camZ = player.soldier.position.z - Math.cos(world.cameraAngle) * camDistance;
 
   cameraPositionTarget.set(camX, camHeight, camZ);
+  cameraTarget.set(player.soldier.position.x, 2, player.soldier.position.z);
   
-  // Look slightly above the soldier's feet (at his head)
-  cameraTarget.set(targetX, 2.5, targetZ);
-  
-  // Smoothly slide camera to the new position
-  world.camera.position.lerp(cameraPositionTarget, 8 * dt);
+  world.camera.position.lerp(cameraPositionTarget, 10 * dt);
   world.camera.lookAt(cameraTarget);
 
   world.renderer.render(world.scene, world.camera);
