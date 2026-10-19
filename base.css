@@ -1,0 +1,15 @@
+/* base.css */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #87ceeb; /* Fallback sky blue */
+  touch-action: none; /* Prevents mobile scrolling/zooming */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  font-family: sans-serif;
+}
