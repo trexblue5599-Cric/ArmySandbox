@@ -1,0 +1,20 @@
+/* game.css */
+#health-bar-container {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 200px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid white;
+  border-radius: 10px;
+  z-index: 10;
+  overflow: hidden;
+}
+
+#health-bar-fill {
+  width: 100%;
+  height: 100%;
+  background: #4caf50;
+  transition: width 0.2s, background 0.2s;
+}
