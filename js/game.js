@@ -1,12 +1,12 @@
-// game.js
+// js/game.js
 
 // 1. Create Health UI
 const healthBarContainer = document.createElement('div');
-healthBarContainer.style.cssText = 'position:fixed; top:20px; left:20px; width:200px; height:20px; background:rgba(0,0,0,0.5); border:2px solid white; border-radius:10px; z-index:10; overflow:hidden;';
+healthBarContainer.id = 'health-bar-container';
 document.body.appendChild(healthBarContainer);
 
 const healthBarFill = document.createElement('div');
-healthBarFill.style.cssText = 'width:100%; height:100%; background:#4caf50; transition: width 0.2s;';
+healthBarFill.id = 'health-bar-fill';
 healthBarContainer.appendChild(healthBarFill);
 
 function updateHealthUI() {
@@ -36,18 +36,20 @@ function createExplosion(pos, color = 0xff5500, scale = 1) {
   }
 }
 
-const clock = new THREE.Clock();
+// --- NEW: Camera Variables for 3rd Person ---
 const cameraTarget = new THREE.Vector3();
 const cameraPositionTarget = new THREE.Vector3();
+let cameraAngle = 0; // Tracks where the camera should look
+
+const clock = new THREE.Clock();
 
 function loop() {
   requestAnimationFrame(loop);
   const dt = Math.min(clock.getDelta(), 0.05);
 
-  // Update Player (Soldier moves)
   player.update(dt);
 
-  // --- ENEMY AI (UPDATED) ---
+  // --- ENEMY AI ---
   for (let e of world.enemies) {
     if (!e.alive) continue;
 
@@ -56,34 +58,26 @@ function loop() {
     const dz = targetPos.z - e.mesh.position.z;
     const distance = Math.hypot(dx, dz);
 
-    // CHASE LOGIC: If distance is less than 100 (basically the whole map), they chase!
     if (distance < 100 && distance > 1.8) {
       const moveX = (dx / distance) * e.speed * dt;
       const moveZ = (dz / distance) * e.speed * dt;
       e.mesh.position.x += moveX;
       e.mesh.position.z += moveZ;
       e.mesh.rotation.y = Math.atan2(dx, dz);
-      
-      // Update collision position
       e.position.set(e.mesh.position.x, 1, e.mesh.position.z);
-      
-      // Reset scale if they were just attacking
       e.mesh.scale.set(1, 1, 1);
     }
 
-    // ATTACK LOGIC: If they reach you
     if (distance <= 1.8 && !player.isDriving) {
       e.attackCooldown -= dt;
       if (e.attackCooldown <= 0) {
         player.health -= 10;
-        e.attackCooldown = 1.0; // 1 second between hits
+        e.attackCooldown = 1.0;
         updateHealthUI();
         
-        // Visual Feedback: Punch effect and Red Explosion
-        e.mesh.scale.set(1.2, 1.2, 1.2); // Enemy lunges
-        createExplosion(targetPos, 0xff0000, 1.5); // Red sparks at player
+        e.mesh.scale.set(1.2, 1.2, 1.2);
+        createExplosion(targetPos, 0xff0000, 1.5);
         
-        // Flash screen red
         document.body.style.backgroundColor = '#ffaaaa';
         setTimeout(() => { document.body.style.backgroundColor = '#87ceeb'; }, 100);
         
@@ -97,7 +91,7 @@ function loop() {
     }
   }
 
-  // --- BULLETS & HIT DETECTION ---
+  // --- BULLETS ---
   for (let i = player.bullets.length - 1; i >= 0; i--) {
     const b = player.bullets[i];
     b.position.addScaledVector(b.userData.dir, 30 * dt);
@@ -108,7 +102,6 @@ function loop() {
     for (let e of world.enemies) {
       if (!e.alive) continue;
       const dist = b.position.distanceTo(e.position);
-      
       const hitRadius = b.userData.isShell ? 2.5 : 1.0;
       
       if (dist < hitRadius) { 
@@ -153,18 +146,35 @@ function loop() {
     }
   }
 
-  // --- CAMERA (Pulled back slightly to see enemies coming) ---
-  const targetX = player.isDriving ? world.tank.position.x : player.soldier.position.x;
-  const targetZ = player.isDriving ? world.tank.position.z : player.soldier.position.z;
+  // --- NEW: GTA STYLE 3RD PERSON CAMERA ---
+  // The camera will position itself behind the player based on where they are facing
   
-  // Changed 12 to 15 to raise the camera, and 14 to 16 to zoom out
-  const camHeight = player.isDriving ? 16 : 15; 
-  const camDistance = player.isDriving ? 18 : 16;
+  const targetX = player.soldier.position.x;
+  const targetZ = player.soldier.position.z;
+  
+  // Smoothly rotate the camera to match the player's rotation
+  let targetAngle = player.soldier.rotation.y;
+  let angleDiff = targetAngle - cameraAngle;
+  while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+  while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+  cameraAngle += angleDiff * 5 * dt; // Lower number = slower camera turning
 
-  cameraPositionTarget.set(targetX, camHeight, targetZ + camDistance);
-  cameraTarget.set(targetX, 1, targetZ);
+  // Calculate where the camera should be (Behind the player)
+  // 8 is the distance behind, 4 is the height
+  const camDistance = 8;
+  const camHeight = 4.5;
+
+  // Math.sin and Math.cos calculate the "behind" position based on the angle
+  const camX = targetX - Math.sin(cameraAngle) * camDistance;
+  const camZ = targetZ - Math.cos(cameraAngle) * camDistance;
+
+  cameraPositionTarget.set(camX, camHeight, camZ);
   
-  world.camera.position.lerp(cameraPositionTarget, 5 * dt);
+  // Look slightly above the soldier's feet (at his head)
+  cameraTarget.set(targetX, 2.5, targetZ);
+  
+  // Smoothly slide camera to the new position
+  world.camera.position.lerp(cameraPositionTarget, 8 * dt);
   world.camera.lookAt(cameraTarget);
 
   world.renderer.render(world.scene, world.camera);
