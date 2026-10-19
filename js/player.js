@@ -1,7 +1,10 @@
-// player.js
+// js/player.js
 const player = {};
 
 player.init = function() {
+  player.health = 100;
+
+  // --- SOLDIER MODEL ---
   player.soldier = new THREE.Group();
   world.add(new THREE.BoxGeometry(1, 1.4, 0.6), 0x2e7d32, 0, 1.3, 0, player.soldier);
   world.add(new THREE.BoxGeometry(0.4, 0.9, 0.4), 0x1b5e20, -0.25, 0.45, 0, player.soldier);
@@ -15,16 +18,21 @@ player.init = function() {
   player.muzzleFlash.position.set(0.5, 1.5, 1.5);
   player.soldier.add(player.muzzleFlash);
 
-  // Controls
-  const ui = (css) => { const d = document.createElement('div'); d.style.cssText = css; document.body.appendChild(d); return d; };
-  player.base = ui('position:fixed;left:25px;bottom:40px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.25);touch-action:none;z-index:10');
-  player.knob = ui('position:fixed;left:60px;bottom:75px;width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.6);pointer-events:none;z-index:11');
-  player.fireBtn = ui('position:fixed;right:30px;bottom:55px;width:90px;height:90px;border-radius:50%;background:rgba(255,60,60,.6);color:#fff;font:bold 18px sans-serif;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;z-index:10;box-shadow: 0 4px 10px rgba(0,0,0,0.3)');
-  player.fireBtn.textContent = 'FIRE';
+  // --- CONTROLS ---
+  player.base = document.createElement('div');
+  player.base.id = 'joystick-base';
+  document.body.appendChild(player.base);
 
-  player.jx = 0;
-  player.jz = 0;
-  player.dragging = false;
+  player.knob = document.createElement('div');
+  player.knob.id = 'joystick-knob';
+  document.body.appendChild(player.knob);
+
+  player.fireBtn = document.createElement('div');
+  player.fireBtn.id = 'fire-btn';
+  player.fireBtn.textContent = 'FIRE';
+  document.body.appendChild(player.fireBtn);
+
+  player.jx = 0; player.jz = 0; player.dragging = false;
 
   function joy(e) {
     const r = player.base.getBoundingClientRect();
@@ -33,7 +41,8 @@ player.init = function() {
     if (len > max) { dx = dx / len * max; dy = dy / len * max; }
     player.knob.style.left = (60 + dx) + 'px';
     player.knob.style.bottom = (75 - dy) + 'px';
-    player.jx = dx / max; player.jz = dy / max;
+    player.jx = dx / max; 
+    player.jz = dy / max;
   }
   
   player.base.addEventListener('pointerdown', e => { player.dragging = true; player.base.setPointerCapture(e.pointerId); joy(e); });
@@ -46,7 +55,6 @@ player.init = function() {
   addEventListener('keydown', e => { player.keys[e.code] = true; if (e.code === 'Space') player.shoot(); });
   addEventListener('keyup', e => player.keys[e.code] = false);
 
-  // Bullets
   player.bullets = [];
   player.bulletGeo = new THREE.SphereGeometry(0.2, 8, 8);
   player.bulletMat = new THREE.MeshBasicMaterial({ color: 0xffeb3b });
@@ -72,15 +80,28 @@ player.shoot = function() {
 };
 
 player.update = function(dt) {
-  let mx = player.jx + (player.keys.KeyD ? 1 : 0) - (player.keys.KeyA ? 1 : 0);
-  let mz = player.jz + (player.keys.KeyS ? 1 : 0) - (player.keys.KeyW ? 1 : 0);
-  const len = Math.hypot(mx, mz);
-  if (len > 1) { mx /= len; mz /= len; }
+  // Get raw input
+  let rawX = player.jx + (player.keys.KeyD ? 1 : 0) - (player.keys.KeyA ? 1 : 0);
+  let rawZ = player.jz + (player.keys.KeyS ? 1 : 0) - (player.keys.KeyW ? 1 : 0);
+  
+  const len = Math.hypot(rawX, rawZ);
+  if (len > 1) { 
+    rawX /= len; 
+    rawZ /= len; 
+  }
 
   if (len > 0.1) {
+    // --- CAMERA RELATIVE MOVEMENT MATH ---
+    // We use the camera's current angle to figure out which way is "forward"
+    const camAngle = world.cameraAngle || 0; 
+    
+    // Rotate the joystick input by the camera angle
+    const moveX = rawX * Math.cos(camAngle) - rawZ * Math.sin(camAngle);
+    const moveZ = rawX * Math.sin(camAngle) + rawZ * Math.cos(camAngle);
+
     const speed = 8 * dt;
-    const nx = player.soldier.position.x + mx * speed;
-    const nz = player.soldier.position.z + mz * speed;
+    const nx = player.soldier.position.x + moveX * speed;
+    const nz = player.soldier.position.z + moveZ * speed;
     
     const hit = (x, z) => world.obstacles.some(o => Math.abs(x - o.x) < o.hw + 0.6 && Math.abs(z - o.z) < o.hd + 0.6);
     if (!hit(nx, player.soldier.position.z)) player.soldier.position.x = nx;
@@ -89,7 +110,8 @@ player.update = function(dt) {
     player.soldier.position.x = Math.max(-58, Math.min(58, player.soldier.position.x));
     player.soldier.position.z = Math.max(-58, Math.min(58, player.soldier.position.z));
     
-    const targetRot = Math.atan2(mx, mz);
+    // Rotate the soldier to face the direction he is actually moving
+    const targetRot = Math.atan2(moveX, moveZ);
     let diff = targetRot - player.soldier.rotation.y;
     while (diff < -Math.PI) diff += Math.PI * 2;
     while (diff > Math.PI) diff -= Math.PI * 2;
