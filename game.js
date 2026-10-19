@@ -3,20 +3,36 @@ scene.background = new THREE.Color(0x87ceeb);
 scene.fog = new THREE.Fog(0x87ceeb, 35, 80);
 
 const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 200);
-const renderer = new THREE.WebGLRenderer({ antialias: false });
-renderer.setPixelRatio(1);
+const renderer = new THREE.WebGLRenderer({ antialias: true }); // Turned antialias ON for smoother edges
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Better resolution on mobile
 renderer.setSize(innerWidth, innerHeight);
+// Enable Shadows
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
 document.body.appendChild(renderer.domElement);
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.65));
-const sun = new THREE.DirectionalLight(0xffffff, 0.7);
-sun.position.set(10, 20, 10);
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+sun.position.set(15, 25, 15);
+// Setup Shadow properties for the Sun
+sun.castShadow = true;
+sun.shadow.mapSize.width = 1024;
+sun.shadow.mapSize.height = 1024;
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far = 50;
+sun.shadow.camera.left = -30;
+sun.shadow.camera.right = 30;
+sun.shadow.camera.top = 30;
+sun.shadow.camera.bottom = -30;
 scene.add(sun);
 
 const mat = c => new THREE.MeshLambertMaterial({ color: c });
 function add(geo, color, x, y, z, parent = scene) {
   const m = new THREE.Mesh(geo, mat(color));
   m.position.set(x, y, z);
+  // Enable shadows for all objects
+  m.castShadow = true;
+  m.receiveShadow = true;
   parent.add(m);
   return m;
 }
@@ -24,6 +40,8 @@ function add(geo, color, x, y, z, parent = scene) {
 // ground
 const ground = add(new THREE.PlaneGeometry(120, 120), 0x7ec850, 0, 0, 0);
 ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+ground.castShadow = false; // Ground shouldn't cast a shadow
 
 // obstacles (for simple collision)
 const obstacles = [];
@@ -70,11 +88,16 @@ add(new THREE.SphereGeometry(0.45, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), 0x1b5e
 add(new THREE.BoxGeometry(0.2, 0.25, 1.2), 0x212121, 0.5, 1.5, 0.6, soldier);
 scene.add(soldier);
 
+// Muzzle Flash Light (Starts off)
+const muzzleFlash = new THREE.PointLight(0xffaa00, 0, 5);
+muzzleFlash.position.set(0.5, 1.5, 1.5);
+soldier.add(muzzleFlash);
+
 // controls: joystick + fire button
 const ui = (css) => { const d = document.createElement('div'); d.style.cssText = css; document.body.appendChild(d); return d; };
-const base = ui('position:fixed;left:25px;bottom:40px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.25);touch-action:none');
-const knob = ui('position:fixed;left:60px;bottom:75px;width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.6);pointer-events:none');
-const fireBtn = ui('position:fixed;right:30px;bottom:55px;width:90px;height:90px;border-radius:50%;background:rgba(255,60,60,.6);color:#fff;font:bold 18px sans-serif;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none');
+const base = ui('position:fixed;left:25px;bottom:40px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.25);touch-action:none;z-index:10');
+const knob = ui('position:fixed;left:60px;bottom:75px;width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.6);pointer-events:none;z-index:11');
+const fireBtn = ui('position:fixed;right:30px;bottom:55px;width:90px;height:90px;border-radius:50%;background:rgba(255,60,60,.6);color:#fff;font:bold 18px sans-serif;display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;z-index:10;box-shadow: 0 4px 10px rgba(0,0,0,0.3)');
 fireBtn.textContent = 'FIRE';
 
 let jx = 0, jz = 0, dragging = false;
@@ -99,13 +122,18 @@ addEventListener('keyup', e => keys[e.code] = false);
 
 // shooting
 const bullets = [];
-const bulletGeo = new THREE.SphereGeometry(0.15, 6, 6);
+const bulletGeo = new THREE.SphereGeometry(0.2, 8, 8); // Slightly bigger
 const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffeb3b });
 let lastShot = 0;
 function shoot() {
   const now = performance.now();
   if (now - lastShot < 200) return;
   lastShot = now;
+  
+  // Flash the light
+  muzzleFlash.intensity = 2;
+  setTimeout(() => { muzzleFlash.intensity = 0; }, 50);
+
   const b = new THREE.Mesh(bulletGeo, bulletMat);
   const dir = new THREE.Vector3(Math.sin(soldier.rotation.y), 0, Math.cos(soldier.rotation.y));
   b.position.copy(soldier.position).add(new THREE.Vector3(0, 1.5, 0)).addScaledVector(dir, 1.3);
@@ -117,6 +145,10 @@ fireBtn.addEventListener('pointerdown', e => { e.preventDefault(); shoot(); });
 
 // game loop
 const clock = new THREE.Clock();
+// Camera variables for smoothing
+const cameraTarget = new THREE.Vector3();
+const cameraPositionTarget = new THREE.Vector3();
+
 function loop() {
   requestAnimationFrame(loop);
   const dt = Math.min(clock.getDelta(), 0.05);
@@ -135,7 +167,12 @@ function loop() {
     if (!hit(soldier.position.x, nz)) soldier.position.z = nz;
     soldier.position.x = Math.max(-58, Math.min(58, soldier.position.x));
     soldier.position.z = Math.max(-58, Math.min(58, soldier.position.z));
-    soldier.rotation.y = Math.atan2(mx, mz);
+    // Smooth rotation for the soldier
+    const targetRot = Math.atan2(mx, mz);
+    let diff = targetRot - soldier.rotation.y;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    soldier.rotation.y += diff * 15 * dt;
   }
 
   for (let i = bullets.length - 1; i >= 0; i--) {
@@ -145,8 +182,16 @@ function loop() {
     if (b.userData.life <= 0) { scene.remove(b); bullets.splice(i, 1); }
   }
 
-  camera.position.set(soldier.position.x, 12, soldier.position.z + 14);
-  camera.lookAt(soldier.position.x, 1, soldier.position.z);
+  // --- Smooth Camera Logic ---
+  // Calculate where the camera *wants* to be
+  cameraPositionTarget.set(soldier.position.x, 12, soldier.position.z + 14);
+  cameraTarget.set(soldier.position.x, 1, soldier.position.z);
+
+  // Lerp (glide) the camera to that position
+  camera.position.lerp(cameraPositionTarget, 5 * dt);
+  // Look slightly ahead of the soldier
+  camera.lookAt(cameraTarget);
+
   renderer.render(scene, camera);
 }
 loop();
