@@ -15,7 +15,6 @@ world.init = function() {
   world.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   document.body.appendChild(world.renderer.domElement);
 
-  // Lighting
   world.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
   const sun = new THREE.DirectionalLight(0xffffff, 0.8);
   sun.position.set(15, 25, 15);
@@ -34,7 +33,6 @@ world.init = function() {
   world.enemies = [];
   world.particles = [];
 
-  // Helper to add meshes
   world.add = function(geo, color, x, y, z, parent = world.scene) {
     const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: color }));
     m.position.set(x, y, z);
@@ -44,12 +42,10 @@ world.init = function() {
     return m;
   };
 
-  // Build Ground
   const ground = world.add(new THREE.PlaneGeometry(120, 120), 0x7ec850, 0, 0, 0);
   ground.rotation.x = -Math.PI / 2;
   ground.castShadow = false;
 
-  // Build Houses
   world.house = function(x, z, wallColor, roofColor) {
     world.add(new THREE.BoxGeometry(6, 4, 6), wallColor, x, 2, z);
     const roof = world.add(new THREE.ConeGeometry(5, 3, 4), roofColor, x, 5.5, z);
@@ -62,7 +58,6 @@ world.init = function() {
   world.house(14, 8, 0xf48fb1, 0x37474f);
   world.house(-14, 10, 0xfff59d, 0x2e7d32);
 
-  // Build Fences & Trees
   world.fence = function(x, z, len, vertical) {
     const w = vertical ? 0.3 : len, d = vertical ? len : 0.3;
     world.add(new THREE.BoxGeometry(w, 1, d), 0xbcaaa4, x, 0.5, z);
@@ -79,7 +74,7 @@ world.init = function() {
     world.add(new THREE.ConeGeometry(1.6, 4, 6), 0x2e7d32, x, 4, z);
   }
 
-  // Spawn Enemies
+  // --- UPDATED ENEMY SPAWN ---
   world.spawnEnemy = function(x, z) {
     const enemyGroup = new THREE.Group();
     world.add(new THREE.BoxGeometry(1, 1.2, 0.6), 0x555555, 0, 1.1, 0, enemyGroup);
@@ -90,7 +85,14 @@ world.init = function() {
     
     enemyGroup.position.set(x, 0, z);
     world.scene.add(enemyGroup);
-    world.enemies.push({ mesh: enemyGroup, position: new THREE.Vector3(x, 1, z), alive: true });
+    
+    world.enemies.push({ 
+      mesh: enemyGroup, 
+      position: new THREE.Vector3(x, 1, z), 
+      alive: true,
+      speed: 3.5,         // How fast they chase
+      attackCooldown: 0   // Timer for attacking
+    });
   };
 
   world.spawnEnemy(5, 0);
@@ -98,6 +100,7 @@ world.init = function() {
   world.spawnEnemy(8, 5);
   world.spawnEnemy(0, -12);
   world.spawnEnemy(15, -5);
+  world.spawnEnemy(-15, -2);
 };
 
 world.init(); // Start the world
