@@ -10,12 +10,18 @@ const dude = { ready: false, T: null, mat: null };
 // colour regions painted on the model
 const REG = { SHOE: 0, PANTS: 1, SKIN: 2, SHIRT: 3, HAIR: 4, FOREARM: 5, DARK: 6 };
 // where each body part turns (model units)
-const PIVOT = { armL: [0.16, -0.26, -0.02], armR: [-0.16, -0.26, -0.02], legL: [0.085, -0.84, 0], legR: [-0.085, -0.84, 0], body: [0, 0, 0] };
+const PIVOT = {
+  armL: [0.16, -0.26, -0.02], armR: [-0.16, -0.26, -0.02],        // shoulders
+  foreL: [0.385, -0.28, -0.02], foreR: [-0.385, -0.28, -0.02],    // elbows
+  legL: [0.085, -0.84, 0], legR: [-0.085, -0.84, 0],              // hips
+  shinL: [0.085, -1.18, 0], shinR: [-0.085, -1.18, 0],            // knees
+  body: [0, 0, 0]
+};
 // which skeleton joint (stored in the glb) belongs to which part
 const JOINT_PART = {};
-[['armL', [4, 9, 10, 11, 12, 17, 18, 19, 20]], ['armR', [22, 23, 24, 25, 26, 27, 32, 33]],
- ['legL', [7, 14, 15, 16]], ['legR', [13, 29, 30, 31]]].forEach(e => e[1].forEach(j => { JOINT_PART[j] = e[0]; }));
-const PART_NAMES = ['body', 'armL', 'armR', 'legL', 'legR'];
+[['armL', [4]], ['foreL', [9, 10, 11, 12, 17, 18, 19, 20]], ['armR', [22]], ['foreR', [23, 24, 25, 26, 27, 32, 33]],
+ ['legL', [7]], ['shinL', [14, 15, 16]], ['legR', [13]], ['shinR', [29, 30, 31]]].forEach(e => e[1].forEach(j => { JOINT_PART[j] = e[0]; }));
+const PART_NAMES = ['body', 'armL', 'foreL', 'armR', 'foreR', 'legL', 'shinL', 'legR', 'shinR'];
 
 // ---------------------------------------------------------------- loading
 dude.load = function(done) {
@@ -41,8 +47,8 @@ dude.build = function(root) {
   function region(part, x, y, z, tiny) {
     if (tiny) return REG.DARK;
     const h = (y - minY) / H;
-    if (part === 'legL' || part === 'legR') return h < 0.06 ? REG.SHOE : REG.PANTS;
-    if (part === 'armL' || part === 'armR') { const ax = Math.abs(x); return ax < 0.5 ? REG.SHIRT : ax < 0.64 ? REG.FOREARM : REG.SKIN; }
+    if (part.indexOf('leg') === 0 || part.indexOf('shin') === 0) return h < 0.06 ? REG.SHOE : REG.PANTS;
+    if (part.indexOf('arm') === 0 || part.indexOf('fore') === 0) { const ax = Math.abs(x); return ax < 0.5 ? REG.SHIRT : ax < 0.64 ? REG.FOREARM : REG.SKIN; }
     if (y < -0.62) return REG.PANTS;
     if (h < 0.8) return REG.SHIRT;
     return (h > 0.94 || (h > 0.86 && z < -0.03)) ? REG.HAIR : REG.SKIN;
@@ -61,8 +67,9 @@ dude.build = function(root) {
           part = JOINT_PART[js[k]] || 'body';
         } else {   // no skeleton data: guess by position
           const x = p.getX(i), y = p.getY(i);
-          if (y < -0.84) part = x > 0 ? 'legL' : 'legR';
-          else if (Math.abs(x) > 0.17 && y > -0.5) part = x > 0 ? 'armL' : 'armR';
+          const sd = x > 0 ? 'L' : 'R';
+          if (y < -0.84) part = (y > -1.18 ? 'leg' : 'shin') + sd;
+          else if (Math.abs(x) > 0.17 && y > -0.5) part = (Math.abs(x) < 0.385 ? 'arm' : 'fore') + sd;
         }
       }
       partOf[i] = part;
@@ -124,11 +131,12 @@ dude.make = function(look) {
   if (!dude.ready) return dude.makeFallback(look);
   const T = dude.T, S = DUDE_HEIGHT / T.H;
   const group = new THREE.Group(), model = new THREE.Group(), rig = new THREE.Group(), body = new THREE.Group();
-  group.add(model); model.add(rig); rig.add(body);
+  const hips = new THREE.Group();
+  group.add(model); model.add(rig); rig.add(hips); rig.add(body);
   model.scale.setScalar(S);
   model.position.y = -T.minY * S;       // feet on the ground
   model.rotation.y = DUDE_FACING;
-  const d = { group, rig, body, look, parts: {}, meshes: {}, acc: null, phase: Math.random() * 6, t: Math.random() * 10, mv: 0 };
+  const d = { group, rig, hips, body, look, parts: {}, knees: {}, elbows: {}, meshes: {}, acc: null, phase: Math.random() * 6, t: Math.random() * 10, mv: 0 };
 
   function mk(name) {
     const P = T.parts[name];
@@ -143,14 +151,22 @@ dude.make = function(look) {
     return m;
   }
   body.add(mk('body'));
-  ['legL', 'legR'].forEach(n => {
-    const g = new THREE.Group(); g.position.set(PIVOT[n][0], PIVOT[n][1], PIVOT[n][2]);
-    g.add(mk(n)); body.add(g); d.parts[n] = g;
-  });
-  ['armL', 'armR'].forEach(n => {
-    const swing = new THREE.Group(); swing.position.set(PIVOT[n][0], PIVOT[n][1], PIVOT[n][2]);
-    const low = new THREE.Group(); low.rotation.z = n === 'armL' ? -ARM_REST : ARM_REST;   // lower the T-pose arm
-    low.add(mk(n)); swing.add(low); body.add(swing); d.parts[n] = swing;
+  ['L', 'R'].forEach(sd => {
+    // leg = thigh (turns at the hip) + shin (turns at the knee)
+    const hip = new THREE.Group(); hip.position.set(PIVOT['leg' + sd][0], PIVOT['leg' + sd][1], PIVOT['leg' + sd][2]);
+    hip.add(mk('leg' + sd));
+    const knee = new THREE.Group();
+    knee.position.set(PIVOT['shin' + sd][0] - PIVOT['leg' + sd][0], PIVOT['shin' + sd][1] - PIVOT['leg' + sd][1], PIVOT['shin' + sd][2] - PIVOT['leg' + sd][2]);
+    knee.add(mk('shin' + sd)); hip.add(knee); hips.add(hip);
+    d.parts['leg' + sd] = hip; d.knees[sd] = knee;
+    // arm = upper arm (turns at the shoulder) + forearm and hand (turn at the elbow)
+    const swing = new THREE.Group(); swing.position.set(PIVOT['arm' + sd][0], PIVOT['arm' + sd][1], PIVOT['arm' + sd][2]);
+    const low = new THREE.Group(); low.rotation.z = sd === 'L' ? -ARM_REST : ARM_REST;   // lower the T-pose arm
+    low.add(mk('arm' + sd));
+    const elbow = new THREE.Group();
+    elbow.position.set(PIVOT['fore' + sd][0] - PIVOT['arm' + sd][0], PIVOT['fore' + sd][1] - PIVOT['arm' + sd][1], PIVOT['fore' + sd][2] - PIVOT['arm' + sd][2]);
+    elbow.add(mk('fore' + sd)); low.add(elbow); swing.add(low); body.add(swing);
+    d.parts['arm' + sd] = swing; d.elbows[sd] = elbow;
   });
   [-1, 1].forEach(s => { const e = new THREE.Mesh(dude.eyeGeo, dude.eyeMat); e.position.set(s * 0.04, 0.035, 0.11); body.add(e); });
 
@@ -180,6 +196,7 @@ dude.make = function(look) {
 };
 
 // ---------------------------------------------------------------- animation: STAND (speed ~0) and WALK / RUN
+// alive = shoulders roll, chest twists against the hips, elbows and knees bend, body bobs and leans
 dude.animate = function(d, dt, speed) {
   d.t += dt;
   const want = speed > 0.25 ? 1 : 0;
@@ -188,14 +205,33 @@ dude.animate = function(d, dt, speed) {
   const stride = 1.6 + Math.max(0, Math.min(6, speed - 3)) * 0.25;
   d.phase += dt * (Math.PI * 2 * speed / stride);                   // step rate follows the real speed
   const A = 0.4 + 0.5 * Math.min(1, speed / 9);                     // swing size: small walk, big run
-  const sw = Math.sin(d.phase) * A * mv;
-  const P = d.parts;
+  const run = Math.max(0, Math.min(1, (speed - 5) / 4));
+  const s = Math.sin(d.phase), c = Math.cos(d.phase), P = d.parts;
+  const sw = s * A * mv;
+
+  // legs: swing at the hip, bend at the knee while the leg passes forward
   P.legL.rotation.x = sw;  P.legR.rotation.x = -sw;
+  if (d.knees) {
+    const kb = (0.55 + 0.7 * run) * (0.5 + A) * mv;
+    d.knees.L.rotation.x = Math.max(0, c) * kb + 0.05 * mv;
+    d.knees.R.rotation.x = Math.max(0, -c) * kb + 0.05 * mv;
+  }
+  // arms: swing at the shoulder (opposite to the legs), roll the shoulder, bend the elbow on the forward swing
   const idleArm = Math.sin(d.t * 1.7) * 0.05 * idle;
-  P.armL.rotation.x = -sw * 0.85 + idleArm;  P.armR.rotation.x = sw * 0.85 - idleArm;
-  // body: bob + twist + lean while moving, gentle breathing / weight-shift while standing
-  d.rig.position.y = Math.abs(Math.cos(d.phase)) * 0.03 * mv * (0.6 + A) + Math.sin(d.t * 2.2) * 0.004 * idle;
-  d.rig.rotation.y = Math.sin(d.phase) * 0.08 * mv;
-  d.rig.rotation.x = (0.04 + 0.12 * Math.max(0, Math.min(1, (speed - 5) / 4))) * mv;
-  d.rig.rotation.z = Math.sin(d.t * 1.1) * 0.012 * idle;
+  const aL = -sw * 0.9 + idleArm, aR = sw * 0.9 - idleArm;
+  P.armL.rotation.x = aL;  P.armR.rotation.x = aR;
+  const out = 0.05 + 0.05 * mv + Math.sin(d.t * 1.3) * 0.015 * idle;     // arms hang slightly away from the body
+  P.armL.rotation.z = out + c * 0.05 * mv;                               // shoulder roll
+  P.armR.rotation.z = -out - c * 0.05 * mv;
+  if (d.elbows) {
+    const bend = side => 0.15 + 0.12 * idle + (0.75 + 0.4 * run) * Math.max(0, -side) * mv + 0.3 * run * mv;
+    d.elbows.L.rotation.y = -bend(aL);      // forearm swings forward
+    d.elbows.R.rotation.y = bend(aR);
+  }
+  // body: chest twists against the hips, bob, lean, sway
+  if (d.body) d.body.rotation.y = -s * 0.15 * mv;
+  if (d.hips) d.hips.rotation.y = s * 0.07 * mv;
+  d.rig.position.y = Math.abs(c) * 0.03 * mv * (0.6 + A) + Math.sin(d.t * 2.2) * 0.004 * idle;
+  d.rig.rotation.x = (0.04 + 0.12 * run) * mv;
+  d.rig.rotation.z = s * 0.03 * mv + Math.sin(d.t * 1.1) * 0.012 * idle;
 };
