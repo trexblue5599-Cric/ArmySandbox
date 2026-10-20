@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Army Sandbox</title>
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/world.css">
+  <link rel="stylesheet" href="css/player.css">
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+  <div id="loading" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font:20px sans-serif;z-index:50;text-shadow:0 1px 4px #000">Loading city&hellip;</div>
+  
+  <!-- Core Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <!-- 1. Settings -->
+  <script src="js/config.js?v=14"></script>
+
+  <!-- 2. World Core (Must load early) -->
+  <script src="js/world-core.js?v=14"></script>
+  <script src="js/world-collision.js?v=14"></script>
+  <script src="js/world-textures.js?v=14"></script>
+  <script src="js/world-sky.js?v=14"></script>
+  
+  <!-- REMOVED world-cars.js -->
+
+  <!-- 3. Wardrobe -->
+  <script src="accessory/registry.js?v=14"></script>
+  <script src="accessory/hats.js?v=14"></script>
+  <script src="accessory/outfits.js?v=14"></script>
+  <script src="accessory/extras.js?v=14"></script>
+  <script src="js/dude.js?v=14"></script>
+
+  <!-- 4. World Builders -->
+  <script src="js/world-roads.js?v=14"></script>
+  <script src="js/world-buildings.js?v=14"></script>
+  <script src="js/world-districts.js?v=14"></script>
+  <script src="js/world-outskirts.js?v=14"></script>
+  <script src="js/world-people.js?v=14"></script>
+  <script src="js/world-traffic.js?v=14"></script> <!-- New GLB traffic code is here -->
+  <script src="js/world-batches.js?v=14"></script>
+
+  <!-- 5. World Update Loop -->
+  <script src="js/world-update.js?v=14"></script>
+
+  <!-- 6. Player -->
+  <script src="js/player.js?v=14"></script>
+  <script src="js/player-controls.js?v=14"></script>
+  <script src="accessory/wardrobe.js?v=14"></script>
+
+  <!-- 7. UI & Camera -->
+  <script src="js/hud.js?v=14"></script>
+  <script src="js/minimap.js?v=14"></script>
+  <script src="js/camera.js?v=14"></script>
+
+  <!-- 8. Main Game Loop (Always last) -->
+  <script src="js/main.js?v=14"></script>
+</body>
+</html> 
