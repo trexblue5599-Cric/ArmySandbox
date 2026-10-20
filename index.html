@@ -11,6 +11,10 @@
   <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
+  <!-- ERUDA CONSOLE -->
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>eruda.init();</script>
+
   <div id="loading" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font:20px sans-serif;z-index:50;text-shadow:0 1px 4px #000">Loading city&hellip;</div>
   
   <!-- Core Three.js -->
@@ -18,46 +22,46 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
   <!-- 1. Settings -->
-  <script src="js/config.js?v=14"></script>
+  <script src="js/config.js?v=15"></script>
 
   <!-- 2. World Core (Must load early) -->
-  <script src="js/world-core.js?v=14"></script>
-  <script src="js/world-collision.js?v=14"></script>
-  <script src="js/world-textures.js?v=14"></script>
-  <script src="js/world-sky.js?v=14"></script>
+  <script src="js/world-core.js?v=15"></script>
+  <script src="js/world-collision.js?v=15"></script>
+  <script src="js/world-textures.js?v=15"></script>
+  <script src="js/world-sky.js?v=15"></script>
   
   <!-- REMOVED world-cars.js -->
 
   <!-- 3. Wardrobe -->
-  <script src="accessory/registry.js?v=14"></script>
-  <script src="accessory/hats.js?v=14"></script>
-  <script src="accessory/outfits.js?v=14"></script>
-  <script src="accessory/extras.js?v=14"></script>
-  <script src="js/dude.js?v=14"></script>
+  <script src="accessory/registry.js?v=15"></script>
+  <script src="accessory/hats.js?v=15"></script>
+  <script src="accessory/outfits.js?v=15"></script>
+  <script src="accessory/extras.js?v=15"></script>
+  <script src="js/dude.js?v=15"></script>
 
   <!-- 4. World Builders -->
-  <script src="js/world-roads.js?v=14"></script>
-  <script src="js/world-buildings.js?v=14"></script>
-  <script src="js/world-districts.js?v=14"></script>
-  <script src="js/world-outskirts.js?v=14"></script>
-  <script src="js/world-people.js?v=14"></script>
-  <script src="js/world-traffic.js?v=14"></script> <!-- New GLB traffic code is here -->
-  <script src="js/world-batches.js?v=14"></script>
+  <script src="js/world-roads.js?v=15"></script>
+  <script src="js/world-buildings.js?v=15"></script>
+  <script src="js/world-districts.js?v=15"></script>
+  <script src="js/world-outskirts.js?v=15"></script>
+  <script src="js/world-people.js?v=15"></script>
+  <script src="js/world-traffic.js?v=15"></script> 
+  <script src="js/world-batches.js?v=15"></script>
 
   <!-- 5. World Update Loop -->
-  <script src="js/world-update.js?v=14"></script>
+  <script src="js/world-update.js?v=15"></script>
 
   <!-- 6. Player -->
-  <script src="js/player.js?v=14"></script>
-  <script src="js/player-controls.js?v=14"></script>
-  <script src="accessory/wardrobe.js?v=14"></script>
+  <script src="js/player.js?v=15"></script>
+  <script src="js/player-controls.js?v=15"></script>
+  <script src="accessory/wardrobe.js?v=15"></script>
 
   <!-- 7. UI & Camera -->
-  <script src="js/hud.js?v=14"></script>
-  <script src="js/minimap.js?v=14"></script>
-  <script src="js/camera.js?v=14"></script>
+  <script src="js/hud.js?v=15"></script>
+  <script src="js/minimap.js?v=15"></script>
+  <script src="js/camera.js?v=15"></script>
 
   <!-- 8. Main Game Loop (Always last) -->
-  <script src="js/main.js?v=14"></script>
+  <script src="js/main.js?v=15"></script>
 </body>
-</html> 
+</html>
