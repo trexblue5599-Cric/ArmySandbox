@@ -11,43 +11,42 @@
   <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
+  <!-- Core Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
-  <!-- 1. Settings & Config -->
-  <script src="js/config.js?v=11"></script>
+  <!-- 1. Settings -->
+  <script src="js/config.js?v=12"></script>
 
-  <!-- 2. World Foundation -->
-  <script src="js/world-core.js?v=11"></script>
-  <script src="js/world-collision.js?v=11"></script>
-  <script src="js/world-textures.js?v=11"></script>
-  <script src="js/world-sky.js?v=11"></script>
-  
-  <!-- 3. World Content (Buildings, Roads, People) -->
-  <script src="js/world-roads.js?v=11"></script>
-  <script src="js/world-batches.js?v=11"></script>
-  <script src="js/world-buildings.js?v=11"></script>
-  <script src="js/world-districts.js?v=11"></script>
-  <script src="js/world-outskirts.js?v=11"></script>
-  <script src="js/world-people.js?v=11"></script>
-  <script src="js/world-traffic.js?v=11"></script>
+  <!-- 2. World Core (Must load early) -->
+  <script src="js/world-core.js?v=12"></script>
+  <script src="js/world-collision.js?v=12"></script>
+  <script src="js/world-textures.js?v=12"></script>
+  <script src="js/world-sky.js?v=12"></script>
+
+  <!-- 3. World Builders -->
+  <script src="js/world-roads.js?v=12"></script>
+  <script src="js/world-buildings.js?v=12"></script>
+  <script src="js/world-districts.js?v=12"></script>
+  <script src="js/world-outskirts.js?v=12"></script>
+  <script src="js/world-people.js?v=12"></script>
+  <script src="js/world-traffic.js?v=12"></script>
+  <script src="js/world-batches.js?v=12"></script>
   
   <!-- 4. World Update Loop -->
-  <script src="js/world-update.js?v=11"></script>
-  <script src="js/world.js?v=11"></script>
+  <script src="js/world-update.js?v=12"></script>
 
-  <!-- 5. Player & Systems -->
-  <script src="js/player-model.js?v=11"></script>
-  <script src="js/player-controls.js?v=11"></script>
-  <script src="js/player.js?v=11"></script>
-  
+  <!-- 5. Player -->
+  <script src="js/player-model.js?v=12"></script>
+  <script src="js/player-controls.js?v=12"></script>
+  <script src="js/player.js?v=12"></script> <!-- The new player logic -->
+
   <!-- 6. UI & Camera -->
-  <script src="js/hud.js?v=11"></script>
-  <script src="js/minimap.js?v=11"></script>
-  <script src="js/camera.js?v=11"></script>
+  <script src="js/hud.js?v=12"></script>
+  <script src="js/minimap.js?v=12"></script>
+  <script src="js/camera.js?v=12"></script>
 
-  <!-- 7. Main Game Loop (MUST BE LAST) -->
-  <script src="js/game.js?v=11"></script>
-  <script src="js/main.js?v=11"></script>
+  <!-- 7. Main Game Loop (Always last) -->
+  <script src="js/main.js?v=12"></script>
 </body>
 </html>
