@@ -11,51 +11,18 @@
   <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
-  <div id="loading" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font:20px sans-serif;z-index:50;text-shadow:0 1px 4px #000">Loading city&hellip;</div>
-  <!-- Core Three.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
-  <!-- 1. Settings -->
-  <script src="js/config.js?v=13"></script>
-
-  <!-- 2. World Core (Must load early) -->
-  <script src="js/world-core.js?v=13"></script>
-  <script src="js/world-collision.js?v=13"></script>
-  <script src="js/world-textures.js?v=13"></script>
-  <script src="js/world-sky.js?v=13"></script>
-  <script src="js/world-cars.js?v=13"></script>
-
-  <!-- 3. Wardrobe: all hats / clothes / glasses / backpacks live in the accessory folder -->
-  <script src="accessory/registry.js?v=13"></script>
-  <script src="accessory/hats.js?v=13"></script>
-  <script src="accessory/outfits.js?v=13"></script>
-  <script src="accessory/extras.js?v=13"></script>
-  <script src="js/dude.js?v=13"></script>
-
-  <!-- 4. World Builders -->
-  <script src="js/world-roads.js?v=13"></script>
-  <script src="js/world-buildings.js?v=13"></script>
-  <script src="js/world-districts.js?v=13"></script>
-  <script src="js/world-outskirts.js?v=13"></script>
-  <script src="js/world-people.js?v=13"></script>
-  <script src="js/world-traffic.js?v=13"></script>
-  <script src="js/world-batches.js?v=13"></script>
-
-  <!-- 5. World Update Loop -->
-  <script src="js/world-update.js?v=13"></script>
-
-  <!-- 6. Player -->
-  <script src="js/player.js?v=13"></script>
-  <script src="js/player-controls.js?v=13"></script>
-  <script src="accessory/wardrobe.js?v=13"></script>
-
-  <!-- 7. UI & Camera -->
-  <script src="js/hud.js?v=13"></script>
-  <script src="js/minimap.js?v=13"></script>
-  <script src="js/camera.js?v=13"></script>
-
-  <!-- 7. Main Game Loop (Always last) -->
-  <script src="js/main.js?v=13"></script>
-</body>
-</html>
+  <!-- 1. settings -->
+  <script src="js/config.js?v=11"></script>
+  <!-- 2. world -->
+  <script src="js/world-core.js?v=11"></script>
+  <script src="js/world-collision.js?v=11"></script>
+  <script src="js/world-sky.js?v=11"></script>
+  <script src="js/world-roads.js?v=11"></script>
+  <script src="js/world-models.js?v=11"></script>
+  <script src="js/world-districts.js?v=11"></script>
+  <script src="js/world-props.js?v=11"></script>
+  <script src="js/world-outskirts.js?v=11"></script>
+  <script src="js/world-traffic.js?v=11"></script>
