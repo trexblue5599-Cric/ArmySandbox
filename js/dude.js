@@ -74,12 +74,18 @@ dude.build = function(root) {
       const a = partOf[v[0]], b = partOf[v[1]], c = partOf[v[2]];
       const part = (a === b || a === c) ? a : (b === c ? b : a);   // majority vote
       const P = parts[part], pv = PIVOT[part];
-      v.forEach(i => {
-        const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
-        P.pos.push(x - pv[0], y - pv[1], z - pv[2]);
-        if (nr) P.nor.push(nr.getX(i), nr.getY(i), nr.getZ(i)); else P.nor.push(0, 1, 0);
-        P.reg.push(region(part, x, y, z, tiny));
-        P.ys.push(y);
+      // one flat colour + one flat normal per triangle = crisp colours and a faceted low-poly look
+      const A = v.map(i => [p.getX(i), p.getY(i), p.getZ(i)]);
+      const cx = (A[0][0] + A[1][0] + A[2][0]) / 3, cy = (A[0][1] + A[1][1] + A[2][1]) / 3, cz = (A[0][2] + A[1][2] + A[2][2]) / 3;
+      const reg = region(part, cx, cy, cz, tiny);
+      const e1 = [A[1][0] - A[0][0], A[1][1] - A[0][1], A[1][2] - A[0][2]], e2 = [A[2][0] - A[0][0], A[2][1] - A[0][1], A[2][2] - A[0][2]];
+      let nx = e1[1] * e2[2] - e1[2] * e2[1], ny = e1[2] * e2[0] - e1[0] * e2[2], nz = e1[0] * e2[1] - e1[1] * e2[0];
+      const nl = Math.hypot(nx, ny, nz) || 1; nx /= nl; ny /= nl; nz /= nl;
+      A.forEach(a => {
+        P.pos.push(a[0] - pv[0], a[1] - pv[1], a[2] - pv[2]);
+        P.nor.push(nx, ny, nz);
+        P.reg.push(reg);
+        P.ys.push(cy);
       });
     }
   });
