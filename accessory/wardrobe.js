@@ -46,6 +46,8 @@ wardrobe.init = function() {
     ['Hat', item('hat', 'hat')],
     ['Hat colour', colour('Colour', 'hc', () => (ACC.get('hat', player.look.hat).colors || ACC.COLORS))],
     ['Glasses', item('glasses', 'glasses')],
+    ['Face', item('face', 'face')],
+    ['Face colour', colour('Colour', 'fc', () => (ACC.get('face', player.look.face).colors || ACC.COLORS))],
     ['Back', item('back', 'back')],
     ['Back colour', colour('Colour', 'bc', () => (ACC.get('back', player.look.back).colors || ACC.COLORS))],
     ['Vest', item('vest', 'vest')],

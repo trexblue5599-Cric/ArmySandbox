@@ -87,4 +87,47 @@
       box(0.352, 0.03, 0.302, 0xe0e0e0, 0, -0.44, -0.02, g);
       return g;
     } });
+
+  // ---------- pixel "deal with it" shades (like the Dude Theft Wars ones) ----------
+  ACC.add('glasses', 'pixel', { name: 'Pixel shades',
+    build() {
+      const g = new T.Group();
+      [-1, 1].forEach(s => {
+        box(0.088, 0.046, 0.012, 0x111111, s * 0.05, 0.04, 0.113, g);
+        [[-0.03, 0.012], [-0.01, 0.0], [0.01, 0.012], [0.03, 0.0], [-0.02, -0.012], [0.0, -0.012], [0.02, -0.012]].forEach(p =>
+          box(0.012, 0.012, 0.004, 0xffffff, s * 0.05 + p[0], 0.04 + p[1], 0.121, g));
+      });
+      box(0.03, 0.012, 0.012, 0x111111, 0, 0.05, 0.113, g);
+      box(0.008, 0.012, 0.2, 0x111111, 0.1, 0.048, 0.015, g);
+      box(0.008, 0.012, 0.2, 0x111111, -0.1, 0.048, 0.015, g);
+      return g;
+    } });
+
+  // ---------- FACE (facial hair) ----------
+  const HAIRC = [0x2b1d12, 0x5a3820, 0x111111, 0xd4a64a, 0x8a3b1c, 0xb0b0b0];
+  ACC.add('face', 'none', { name: 'Clean shaven' });
+  ACC.add('face', 'mustache', { name: 'Mustache', colors: HAIRC,
+    build(c) {
+      const g = new T.Group();
+      box(0.09, 0.022, 0.02, c, 0, -0.04, 0.113, g);
+      box(0.02, 0.04, 0.02, c, 0.048, -0.055, 0.112, g);
+      box(0.02, 0.04, 0.02, c, -0.048, -0.055, 0.112, g);
+      return g;
+    } });
+  ACC.add('face', 'goatee', { name: 'Goatee', colors: HAIRC,
+    build(c) {
+      const g = new T.Group();
+      box(0.07, 0.016, 0.02, c, 0, -0.04, 0.113, g);
+      box(0.04, 0.07, 0.025, c, 0, -0.1, 0.105, g);
+      return g;
+    } });
+  ACC.add('face', 'beard', { name: 'Full beard', colors: HAIRC,
+    build(c) {
+      const g = new T.Group();
+      box(0.17, 0.09, 0.03, c, 0, -0.075, 0.098, g);
+      box(0.02, 0.1, 0.17, c, 0.095, -0.06, 0.02, g);
+      box(0.02, 0.1, 0.17, c, -0.095, -0.06, 0.02, g);
+      box(0.09, 0.02, 0.02, c, 0, -0.04, 0.115, g);
+      return g;
+    } });
 })();

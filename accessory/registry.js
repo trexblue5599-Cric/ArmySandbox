@@ -35,12 +35,12 @@ ACC.get = (slot, id) => (ACC.slots[slot] || {})[id];
 // make sure a look only uses things that exist (old saved looks, typos...)
 ACC.fix = function(look) {
   const L = Object.assign({}, ACC.defaultLook(), look || {});
-  ['outfit', 'hat', 'glasses', 'back', 'vest'].forEach(s => { if (!ACC.get(s, L[s])) L[s] = s === 'outfit' ? ACC.ids('outfit')[0] : 'none'; });
-  ['c1', 'c2', 'hc', 'bc', 'skin', 'hair'].forEach(k => { L[k] = Math.abs(Math.floor(+L[k] || 0)); });
+  ['outfit', 'hat', 'glasses', 'back', 'vest', 'face'].forEach(s => { if (!ACC.get(s, L[s])) L[s] = s === 'outfit' ? ACC.ids('outfit')[0] : 'none'; });
+  ['c1', 'c2', 'hc', 'bc', 'fc', 'skin', 'hair'].forEach(k => { L[k] = Math.abs(Math.floor(+L[k] || 0)); });
   return L;
 };
 
-ACC.defaultLook = () => ({ outfit: 'army', c1: 0, c2: 0, hat: 'helmet', hc: 0, glasses: 'none', back: 'none', bc: 0, vest: 'tactical', skin: 2, hair: 0 });
+ACC.defaultLook = () => ({ outfit: 'army', c1: 0, c2: 0, hat: 'helmet', hc: 0, glasses: 'none', back: 'none', bc: 0, vest: 'tactical', face: 'none', fc: 0, skin: 2, hair: 0 });
 
 // a random person (used for every pedestrian). rnd = a function returning 0..1
 ACC.randomLook = function(rnd) {
@@ -53,6 +53,7 @@ ACC.randomLook = function(rnd) {
     glasses: rnd() < 0.25 ? pick(non('glasses')) : 'none',
     back: rnd() < 0.22 ? pick(non('back')) : 'none', bc: Math.floor(rnd() * 50),
     vest: rnd() < 0.07 ? pick(non('vest')) : 'none',
+    face: rnd() < 0.3 ? pick(non('face')) : 'none', fc: Math.floor(rnd() * 50),
     skin: Math.floor(rnd() * ACC.SKINS.length), hair: Math.floor(rnd() * ACC.HAIRS.length)
   });
 };
@@ -75,6 +76,7 @@ ACC.attach = function(parent, look) {
   pick('glasses', look.glasses, 0);
   pick('back', look.back, look.bc);
   pick('vest', look.vest, 0);
+  pick('face', look.face, look.fc);
   if (o && o.build) g.add(o.build(ACC.shirtOf(look, o), ACC.pantsOf(look, o)));
   parent.add(g);
   return g;
