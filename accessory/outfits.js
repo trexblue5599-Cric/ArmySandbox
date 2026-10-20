@@ -6,9 +6,9 @@
   const T = THREE;
   const box = (w, h, d, c, x, y, z, g) => ACC.mesh(new T.BoxGeometry(w, h, d), c, x, y, z, g);
 
-  ACC.add('outfit', 'casual', { name: 'Casual', long: false, shoes: 0x2a2a2a,
+  ACC.add('outfit', 'casual', { name: 'Casual', long: false, shoes: 0xf2f2f2,
     shirts: [0xe53935, 0x1e88e5, 0xfdd835, 0x43a047, 0xffffff, 0x8e24aa, 0xff7043, 0x26c6da],
-    pants: [0x37474f, 0x3b5b92, 0x5d4037, 0x212121] });
+    pants: [0x37474f, 0x3b5b92, 0x5d4037, 0x212121, 0x2e9e4a] });
 
   ACC.add('outfit', 'army', { name: 'Army fatigues', long: true, shoes: 0x1a1a1a,
     shirts: [0x4b5320, 0x6b6f3f, 0x3d4a2c, 0x8a7a54],
