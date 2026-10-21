@@ -25,6 +25,7 @@ function startGame() {
   initMinimap();
   wardrobe.init();
   interior.init();          // builds the inside of the house
+  world.initGrass();        // grass texture on every grass ground (after the house lawn exists)
   interior.spawnInside();   // you start inside the house
 
   const loading = document.getElementById('loading');

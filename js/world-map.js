@@ -61,16 +61,16 @@ world.initMap = function() {
 
   // a block of water, with a sandy beach around it. The player can't walk into water.
   const water = (x0, x1, z0, z1) => {
-    const sand = world.add(new THREE.BoxGeometry(x1 - x0 + 4, 0.02, z1 - z0 + 4), MAP.SAND, (x0 + x1) / 2, 0.045, (z0 + z1) / 2);
+    const sand = world.add(new THREE.BoxGeometry(x1 - x0 + 4, 0.02, z1 - z0 + 4), MAP.SAND, (x0 + x1) / 2, 0.06, (z0 + z1) / 2);
     sand.castShadow = false;
     const w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
-    flat(w, d, MAP.WATER, cx, 0.06, cz, 0.02);
+    flat(w, d, MAP.WATER, cx, 0.13, cz, 0.02);
     obstacle(cx, cz, w / 2, d / 2, 0.1);
     world.mapRects.push({ kind: 'w', x: cx, z: cz, w, d });
   };
   // a flat coloured patch on the ground (fields, dirt, tarmac)
   const patch = (x0, x1, z0, z1, color, y) => {
-    flat(x1 - x0, z1 - z0, color, (x0 + x1) / 2, y || 0.07, (z0 + z1) / 2, 0.02);
+    flat(x1 - x0, z1 - z0, color, (x0 + x1) / 2, y || 0.17, (z0 + z1) / 2, 0.02);
     world.mapRects.push({ kind: 'p', x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: x1 - x0, d: z1 - z0 });
   };
   // a solid box (buildings, sheds, containers)
@@ -87,7 +87,7 @@ world.initMap = function() {
   };
 
   // ---------- ground base for the farm strip (south of the city) ----------
-  patch(-126, 126, 86, 116, 0x7fb35a, 0.065);
+  patch(-126, 126, 86, 116, 0x7fb35a, 0.13);
 
   // ---------- THE SEA AROUND THE WHOLE MAP (replaces the mountains at the edges) ----------
   const S = CONFIG.LIMIT - 14, B = CONFIG.LIMIT + 120;
@@ -102,7 +102,7 @@ world.initMap = function() {
   sea(-B, -S, -S, S);     // west sea
   sea(S, B, -S, S);       // east sea
   // beach strip just inside the shoreline
-  const beach = (x0, x1, z0, z1) => flat(x1 - x0, z1 - z0, MAP.SAND, (x0 + x1) / 2, 0.04, (z0 + z1) / 2, 0.02);
+  const beach = (x0, x1, z0, z1) => flat(x1 - x0, z1 - z0, MAP.SAND, (x0 + x1) / 2, 0.06, (z0 + z1) / 2, 0.02);
   beach(-S, S, -S, -S + 5); beach(-S, S, S - 5, S);
   beach(-S, -S + 5, -S + 5, S - 5); beach(S - 5, S, -S + 5, S - 5);
 
@@ -113,7 +113,7 @@ world.initMap = function() {
   water(152, L, -30, 42);         // east sea by the harbour
 
   // ---------- HARBOUR QUAY (east of the city, on the coast) ----------
-  patch(126, 152, -30, 30, 0x9e9a92, 0.05);
+  patch(126, 152, -30, 30, 0x9e9a92, 0.09);
   for (let i = 0; i < 6; i++) {               // containers
     const x = 130 + (i % 3) * 7, z = -22 + Math.floor(i / 3) * 14 + (i % 2) * 2;
     world.add(new THREE.BoxGeometry(5, 2.6, 2.4), [0xc62828, 0x1565c0, 0xef6c00, 0x2e7d32, 0xf9a825, 0x6a1b9a][i], x, 1.3, z);
@@ -133,7 +133,7 @@ world.initMap = function() {
     const steps = Math.ceil(Math.hypot(bx - ax, bz - az) / 3);
     for (let s = 0; s <= steps; s++) {
       const x = ax + (bx - ax) * s / steps, z = az + (bz - az) * s / steps;
-      const m = world.add(new THREE.BoxGeometry(6, 0.02, 6), MAP.WATER, x, 0.06, z);
+      const m = world.add(new THREE.BoxGeometry(6, 0.02, 6), MAP.WATER, x, 0.13, z);
       m.castShadow = false;
       obstacle(x, z, 2.5, 2.5, 0.1);
     }
@@ -146,7 +146,7 @@ world.initMap = function() {
       if (Math.abs(c) < 1 && r === 0) continue;                     // leave the farm road clear
       const x0 = c * 26 + 2, z0 = 130 + r * 30;
       if (z0 + 24 > far) continue;
-      patch(x0, x0 + 24, z0, z0 + 24, cols[(r + c + 10) % cols.length], 0.07);
+      patch(x0, x0 + 24, z0, z0 + 24, cols[(r + c + 10) % cols.length], 0.17);
     }
   }
   // a second, bigger farm in the south-west corner with its own barn
@@ -154,16 +154,16 @@ world.initMap = function() {
   roof(12, 8, 0x37474f, -150, 6.2, 210);
 
   // ---------- WEST: quarry (dirt pit), a road out of town, the railway ----------
-  patch(-172, -134, 40, 96, 0x9c7a52, 0.06);              // dirt
-  patch(-160, -146, 52, 84, 0x6d4c2e, 0.08);              // the pit
+  patch(-172, -134, 40, 96, 0x9c7a52, 0.10);              // dirt
+  patch(-160, -146, 52, 84, 0x6d4c2e, 0.14);              // the pit
   [[-168, 50], [-140, 92], [-158, 92]].forEach(p => {
     const r = world.add(new THREE.DodecahedronGeometry(3, 0), 0x8d8d88, p[0], 1.2, p[1]);
     obstacle(p[0], p[1], 2, 2, 2);
   });
   // road west out of town (flat strip)
-  patch(-L, -126, -5, 5, MAP.ROAD, 0.05);
+  patch(-L, -126, -5, 5, MAP.ROAD, 0.09);
   // railway along the west side of town
-  patch(-134, -132, -L, 100, 0x6d4c41, 0.05);
+  patch(-134, -132, -L, 100, 0x6d4c41, 0.03);
 
   // ---------- SOUTH: farmland with fields, barn, silos, farm road ----------
   const fields = [
@@ -180,24 +180,24 @@ world.initMap = function() {
     obstacle(p[0], p[1], 1.7, 1.7, 7.5);
   });
   // a small pond in the south fields
-  world.add(new THREE.CylinderGeometry(4, 4, 0.03, 16), MAP.WATER, 60, 0.09, 102).castShadow = false;
+  world.add(new THREE.CylinderGeometry(4, 4, 0.03, 16), MAP.WATER, 60, 0.13, 102).castShadow = false;
   // farm road going south from the town
-  patch(-4, 4, 116, L, MAP.ROAD, 0.05);
+  patch(-4, 4, 116, 268, MAP.ROAD, 0.105);
 
   // ---------- SOUTH-WEST: parking lot, diner, airport ----------
-  patch(-66, -40, 126, 152, 0x4a4a4e, 0.05);              // parking lot
+  patch(-66, -40, 126, 152, 0x4a4a4e, 0.09);              // parking lot
   [-62, -56, -50, -44].forEach(x => patch(x, x + 0.4, 128, 150, 0xeeeeee, 0.06));   // parking lines
   box(12, 5, 7, 0xf5f5f5, -54, 0.05, 160);                // diner
   roof(12, 7, 0xc62828, -54, 5.2, 160);
-  patch(-120, -30, 168, 175, 0x4a4a4e, 0.05);             // runway
-  for (let x = -116; x < -34; x += 12) patch(x, x + 5, 171.5, 172.1, 0xeeeeee, 0.06);   // runway centre line
+  patch(-120, -30, 168, 175, 0x4a4a4e, 0.09);             // runway
+  for (let x = -116; x < -34; x += 12) patch(x, x + 5, 171.5, 172.1, 0xeeeeee, 0.12);   // runway centre line
   box(14, 7, 10, 0x9e9e9e, -104, 0.05, 150);             // hangar
   world.add(new THREE.BoxGeometry(9, 1.4, 1.4), 0xf5f5f5, -84, 0.9, 150);                  // plane body
   world.add(new THREE.BoxGeometry(2, 0.15, 13), 0xf5f5f5, -84, 1.2, 150);                  // plane wings
 
   // ---------- SOUTH-EAST: highway and small town ----------
-  patch(-4, L, 156, 164, MAP.ROAD, 0.05);               // highway
-  for (let x = 0; x < L; x += 7) patch(x, x + 3.5, 159.8, 160.2, 0xe0c940, 0.06);   // highway centre dashes
+  patch(-4, L, 156, 164, MAP.ROAD, 0.09);               // highway
+  for (let x = 0; x < L; x += 7) patch(x, x + 3.5, 159.8, 160.2, 0xe0c940, 0.12);   // highway centre dashes
   // town houses
   [[46, 132], [66, 130], [88, 134], [112, 130], [132, 132]].forEach((p, i) => {
     world.house(p[0], p[1], CONFIG.WALLS[i % CONFIG.WALLS.length], CONFIG.ROOFS[i % CONFIG.ROOFS.length]);
@@ -207,24 +207,24 @@ world.initMap = function() {
 
   // ---------- EXPANDED OUTER WORLD: new countryside beyond the original map ----------
   // A network of long rural roads makes the playable world feel substantially larger.
-  patch(-L, L, 276, 284, MAP.ROAD, 0.05);
-  patch(-L, L, 376, 384, MAP.ROAD, 0.05);
-  patch(276, 284, -L, L, MAP.ROAD, 0.05);
-  patch(386, 394, -L, L, MAP.ROAD, 0.05);
+  patch(-L, L, 276, 284, MAP.ROAD, 0.105);
+  patch(-L, L, 376, 384, MAP.ROAD, 0.105);
+  patch(276, 284, -L, L, MAP.ROAD, 0.09);
+  patch(386, 394, -L, L, MAP.ROAD, 0.09);
   // road markings on the two east-west routes
   for (let x = -240; x < 245; x += 18) {
-    patch(x, x + 7, 279.7, 280.3, 0xe0c940, 0.06);
-    patch(x, x + 7, 379.7, 380.3, 0xe0c940, 0.06);
+    patch(x, x + 7, 279.7, 280.3, 0xe0c940, 0.12);
+    patch(x, x + 7, 379.7, 380.3, 0xe0c940, 0.12);
   }
   // A northern forest reserve with clearings and a ranger station
-  patch(-220, -145, -430, -345, 0x456b3c, 0.065);
-  patch(-205, -160, -415, -360, 0x6f8d4b, 0.075);
+  patch(-220, -145, -430, -345, 0x456b3c, 0.17);
+  patch(-205, -160, -415, -360, 0x6f8d4b, 0.17);
   box(12, 5, 9, 0x8d6e63, -180, 0.05, -385);
   roof(12, 9, 0x37474f, -180, 5.2, -385);
   // Eastern lakeside village: roads, homes and a small service station
-  patch(300, 470, -220, -130, 0x7fae5c, 0.065);
-  patch(315, 455, -185, -177, MAP.ROAD, 0.07);
-  patch(340, 348, -215, -145, MAP.ROAD, 0.07);
+  patch(300, 470, -220, -130, 0x7fae5c, 0.17);
+  patch(315, 455, -185, -177, MAP.ROAD, 0.09);
+  patch(340, 348, -215, -145, MAP.ROAD, 0.09);
   [[330,-202],[360,-202],[390,-202],[420,-202],[330,-155],[365,-155],[400,-155],[435,-155]].forEach((p,i) => {
     world.house(p[0], p[1], CONFIG.WALLS[(i+2)%CONFIG.WALLS.length], CONFIG.ROOFS[(i+1)%CONFIG.ROOFS.length]);
   });
@@ -232,13 +232,13 @@ world.initMap = function() {
   // South-west orchards and a rural campsite with paths and shelters
   for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) {
     const x = -450 + c * 24, z = 285 + r * 24;
-    patch(x, x + 20, z, z + 20, (r+c)%2 ? 0x6e9b43 : 0x8bb653, 0.07);
+    patch(x, x + 20, z, z + 20, (r+c)%2 ? 0x6e9b43 : 0x8bb653, 0.17);
     for (let k = 0; k < 5; k++) {
       const tx = x + 3 + (k%3)*6, tz = z + 4 + Math.floor(k/3)*8;
       world.tree(tx, tz, 0.65);
     }
   }
-  patch(-420, -330, 420, 465, 0x9c7a52, 0.07); // campsite clearing
+  patch(-420, -330, 420, 465, 0x9c7a52, 0.17); // campsite clearing
   [[-400,432],[-370,432],[-400,452],[-370,452]].forEach((p,i) => {
     box(6, 2.8, 5, 0xbca58a, p[0], 0.05, p[1]);
     roof(6, 5, 0x5d4037, p[0], 3.0, p[1]);
@@ -246,14 +246,14 @@ world.initMap = function() {
   // South-east agricultural district with a farmhouse, silo and large fields
   for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
     const x0 = 300 + c * 32, z0 = 290 + r * 30;
-    patch(x0, x0 + 28, z0, z0 + 26, [0x7cb342,0xe0b84f,0x6d4c2e,0x558b2f,0xc9a85c][(r*2+c)%5], 0.07);
+    patch(x0, x0 + 28, z0, z0 + 26, [0x7cb342,0xe0b84f,0x6d4c2e,0x558b2f,0xc9a85c][(r*2+c)%5], 0.17);
   }
   box(14, 7, 10, 0xb23a30, 350, 0.05, 340);
   roof(14, 10, 0x37474f, 350, 7.2, 340);
   world.add(new THREE.CylinderGeometry(2, 2, 9, 12), 0xcfd8dc, 370, 4.6, 342);
   obstacle(370, 342, 2, 2, 9);
   // West ridge road and a lookout tower on a rocky hill
-  patch(-460, -280, 180, 188, MAP.ROAD, 0.05);
+  patch(-460, -280, 180, 188, MAP.ROAD, 0.09);
   for (let i = 0; i < 9; i++) {
     const x = -450 + i * 18, z = 130 + (i%3)*13;
     const rock = world.add(new THREE.DodecahedronGeometry(5 + (i%3), 1), 0x777b78, x, 2.2, z);

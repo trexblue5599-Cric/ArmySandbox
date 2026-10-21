@@ -63,7 +63,7 @@ interior.init = function() {
     const w = f.u1 - f.u0, d = f.v1 - f.v0;
     const t2 = new THREE.CanvasTexture(texCache[key].image); t2.wrapS = t2.wrapT = THREE.RepeatWrapping; t2.repeat.set(w / 1.0, d / 1.0);
     const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshLambertMaterial({ map: t2 }));
-    m.rotation.x = -Math.PI / 2; m.position.set(-(f.u0 + f.u1) / 2, 0.052, (f.v0 + f.v1) / 2); m.receiveShadow = true;
+    m.rotation.x = -Math.PI / 2; m.position.set(-(f.u0 + f.u1) / 2, 0.062, (f.v0 + f.v1) / 2); m.receiveShadow = true;
     g.add(m);
   });
   // ceiling (only visible from inside - from above you see straight into the rooms)
