@@ -48,7 +48,7 @@ world.initCore = function() {
   world.camYaw = 0;
   world.camPitch = 0.4;
 
-  world.camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 420);
+  world.camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 1000);
   world.renderer = new THREE.WebGLRenderer({ antialias: true });
   world.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   world.renderer.setSize(innerWidth, innerHeight);

@@ -3,7 +3,7 @@ const CONFIG = {
   DAY_LENGTH: 240,   // seconds for one full 24-hour day
   START_HOUR: 9,     // game starts at 9 AM
 
-  LIMIT: 260,                     // the playable area is a square from -LIMIT to +LIMIT
+  LIMIT: 520,                     // the playable area is a square from -LIMIT to +LIMIT
   HALF: 126,                      // the city is 2*HALF wide (roads end at +-HALF)
   ROADS: [-120, -80, -40, 0, 40, 80, 120],   // road centre lines (used for both x and z)
   ROAD_W: 10,
@@ -33,6 +33,6 @@ const CONFIG = {
   SKINS: [0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524, 0xffdbac],
 
   // counts
-  TRAFFIC_CARS: 32,
-  PEDESTRIANS: 44
+  TRAFFIC_CARS: 48,
+  PEDESTRIANS: 60
 };

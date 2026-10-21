@@ -38,7 +38,10 @@ MAP.riverDist = function(x, z) {
 // anything that is NOT free land: the city, roads, water, the farm, the airport, the town, the river
 MAP.blocked = function(x, z) {
   if (Math.abs(x) > CONFIG.LIMIT - 14 || Math.abs(z) > CONFIG.LIMIT - 14) return true;   // the sea
-  if (Math.abs(x) < 132 && Math.abs(z) < 132) return true;          // the city + its farm strip
+  if (Math.abs(x) < 132 && Math.abs(z) < 132) return true;
+  // New outer-region roads stay clear of trees and other free-land props.
+  if (Math.abs(z - 280) < 7 || Math.abs(z - 380) < 7) return true;
+  if (Math.abs(x - 280) < 7 || Math.abs(x - 390) < 7) return true;          // the city + its farm strip
   if (MAP.inWater(x, z)) return true;
   if (MAP.riverDist(x, z) < 5) return true;
   if (Math.abs(x) < 7 && (z > 120 || z < -120)) return true;        // north and south roads
@@ -103,7 +106,7 @@ world.initMap = function() {
   beach(-S, -S + 5, -S + 5, S - 5); beach(S - 5, S, -S + 5, S - 5);
 
   // ---------- NORTH + EAST WATER ----------
-  const L = CONFIG.LIMIT - 14;    // the land ends here; beyond it is the sea
+  const L = 246;    // keep the original coast and landmarks in place; expansion is added beyond them
   water(4, L, -L, -124);          // north lake
   water(132, L, -124, -30);       // east lake coast
   water(152, L, -30, 42);         // east sea by the harbour
@@ -201,8 +204,64 @@ world.initMap = function() {
   // farm houses in the south-east fields
   [[16, 92], [30, 92]].forEach(p => world.house(p[0], p[1], 0xfff9c4, 0x5d4037));
 
-  // ---------- trees: forests, not on roads / water / town ----------
-  for (let i = 0; i < 2200; i++) {
+  // ---------- EXPANDED OUTER WORLD: new countryside beyond the original map ----------
+  // A network of long rural roads makes the playable world feel substantially larger.
+  patch(-L, L, 276, 284, MAP.ROAD, 0.05);
+  patch(-L, L, 376, 384, MAP.ROAD, 0.05);
+  patch(276, 284, -L, L, MAP.ROAD, 0.05);
+  patch(386, 394, -L, L, MAP.ROAD, 0.05);
+  // road markings on the two east-west routes
+  for (let x = -240; x < 245; x += 18) {
+    patch(x, x + 7, 279.7, 280.3, 0xe0c940, 0.06);
+    patch(x, x + 7, 379.7, 380.3, 0xe0c940, 0.06);
+  }
+  // A northern forest reserve with clearings and a ranger station
+  patch(-220, -145, -430, -345, 0x456b3c, 0.065);
+  patch(-205, -160, -415, -360, 0x6f8d4b, 0.075);
+  box(12, 5, 9, 0x8d6e63, -180, 0.05, -385);
+  roof(12, 9, 0x37474f, -180, 5.2, -385);
+  // Eastern lakeside village: roads, homes and a small service station
+  patch(300, 470, -220, -130, 0x7fae5c, 0.065);
+  patch(315, 455, -185, -177, MAP.ROAD, 0.07);
+  patch(340, 348, -215, -145, MAP.ROAD, 0.07);
+  [[330,-202],[360,-202],[390,-202],[420,-202],[330,-155],[365,-155],[400,-155],[435,-155]].forEach((p,i) => {
+    world.house(p[0], p[1], CONFIG.WALLS[(i+2)%CONFIG.WALLS.length], CONFIG.ROOFS[(i+1)%CONFIG.ROOFS.length]);
+  });
+  box(14, 4, 10, 0xf9a825, 445, 0.05, -195); // roadside service station
+  // South-west orchards and a rural campsite with paths and shelters
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) {
+    const x = -450 + c * 24, z = 285 + r * 24;
+    patch(x, x + 20, z, z + 20, (r+c)%2 ? 0x6e9b43 : 0x8bb653, 0.07);
+    for (let k = 0; k < 5; k++) {
+      const tx = x + 3 + (k%3)*6, tz = z + 4 + Math.floor(k/3)*8;
+      world.tree(tx, tz, 0.65);
+    }
+  }
+  patch(-420, -330, 420, 465, 0x9c7a52, 0.07); // campsite clearing
+  [[-400,432],[-370,432],[-400,452],[-370,452]].forEach((p,i) => {
+    box(6, 2.8, 5, 0xbca58a, p[0], 0.05, p[1]);
+    roof(6, 5, 0x5d4037, p[0], 3.0, p[1]);
+  });
+  // South-east agricultural district with a farmhouse, silo and large fields
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
+    const x0 = 300 + c * 32, z0 = 290 + r * 30;
+    patch(x0, x0 + 28, z0, z0 + 26, [0x7cb342,0xe0b84f,0x6d4c2e,0x558b2f,0xc9a85c][(r*2+c)%5], 0.07);
+  }
+  box(14, 7, 10, 0xb23a30, 350, 0.05, 340);
+  roof(14, 10, 0x37474f, 350, 7.2, 340);
+  world.add(new THREE.CylinderGeometry(2, 2, 9, 12), 0xcfd8dc, 370, 4.6, 342);
+  obstacle(370, 342, 2, 2, 9);
+  // West ridge road and a lookout tower on a rocky hill
+  patch(-460, -280, 180, 188, MAP.ROAD, 0.05);
+  for (let i = 0; i < 9; i++) {
+    const x = -450 + i * 18, z = 130 + (i%3)*13;
+    const rock = world.add(new THREE.DodecahedronGeometry(5 + (i%3), 1), 0x777b78, x, 2.2, z);
+    rock.scale.y = 0.8;
+  }
+  box(3, 16, 3, 0x795548, -350, 0.05, 150);
+  box(9, 1, 9, 0xeeeeee, -350, 14, 150);
+  // Increase vegetation density to fill the larger exploration area.
+  for (let i = 0; i < 6500; i++) {
     const x = (rnd() - 0.5) * 2 * (L - 4), z = (rnd() - 0.5) * 2 * (L - 4);
     if (!world.freeLand(x, z)) continue;
     world.tree(x, z, 0.9 + rnd() * 0.8);
