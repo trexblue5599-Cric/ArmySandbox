@@ -20,6 +20,8 @@ world.initUpdate = function() {
 
     // traffic
     for (const c of world.traffic) {
+      // A traffic vehicle being driven by the player must not be moved by AI.
+      if (typeof vehicleDrive !== 'undefined' && vehicleDrive.active && vehicleDrive.active.traffic === c) continue;
       const ahead = c.alongZ ? (pz - c.z) * c.dir : (px - c.x) * c.dir;
       const lat = c.alongZ ? Math.abs(px - c.x) : Math.abs(pz - c.z);
       const target = (ahead > 0 && ahead < 9 && lat < 2.4) ? 0 : c.cruise;

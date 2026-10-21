@@ -62,22 +62,32 @@ const vehicleDrive = {
     style(help,{position:'fixed',left:'50%',top:'12px',transform:'translateX(-50%)',zIndex:'25',display:'none',padding:'7px 10px',borderRadius:'8px',background:'rgba(0,0,0,.6)',color:'white',font:'13px sans-serif',pointerEvents:'none'});
     document.body.appendChild(help); this.help=help;
   },
+  allCars() {
+    // Include every spawned traffic car as well as the extra parked vehicles.
+    const traffic = (world.traffic || []).map(t => ({
+      root: t.g, traffic: t, get yaw() { return t.g.rotation.y; },
+      set yaw(v) { t.g.rotation.y = v; }, path: t.path || 'traffic car'
+    }));
+    return [...this.cars, ...traffic];
+  },
   nearest() {
     if (!player || !player.soldier) return null;
     const p = player.soldier.position; let best=null, dist=Infinity;
-    for (const c of this.cars) { const d=Math.hypot(p.x-c.root.position.x,p.z-c.root.position.z); if(d<dist){dist=d;best=c;} }
+    for (const c of this.allCars()) { if (!c.root || !c.root.visible) continue; const d=Math.hypot(p.x-c.root.position.x,p.z-c.root.position.z); if(d<dist){dist=d;best=c;} }
     return dist < 5.5 ? best : null;
   },
   toggle(forceExit=false) {
     if (this.active) {
       const c=this.active, p=player.soldier.position;
-      const sideX=Math.cos(c.yaw)*1.8, sideZ=-Math.sin(c.yaw)*1.8;
+      const yaw = c.traffic ? c.root.rotation.y : c.yaw;
+      const sideX=Math.cos(yaw)*1.8, sideZ=-Math.sin(yaw)*1.8;
       p.set(c.root.position.x+sideX,0,c.root.position.z+sideZ);
       player.soldier.visible=true; player.model.visible=true;
       this.active=null; this.speed=0; this.panel.style.display='none'; this.help.style.display='none';
       return;
     }
     const c=this.nearest(); if(!c) return;
+    if (c.traffic) { c.yaw = c.root.rotation.y; c.x = c.root.position.x; c.z = c.root.position.z; }
     this.active=c; this.speed=0; player.soldier.visible=false;
     this.panel.style.display='flex'; this.enterButton.style.display='none'; this.help.style.display='block';
     if (typeof fp!=='undefined' && fp.ready) fp.leave();
@@ -96,12 +106,16 @@ const vehicleDrive = {
     else this.speed += (this.speed>0?-1:1)*Math.min(Math.abs(this.speed),this.brake*dt);
     const steering=(right?1:0)-(left?1:0);
     if(Math.abs(this.speed)>0.15) c.yaw += steering*this.turnRate*dt*Math.sign(this.speed)*Math.min(1,Math.abs(this.speed)/4);
-    const nx=c.root.position.x+Math.sin(c.yaw)*this.speed*dt;
-    const nz=c.root.position.z+Math.cos(c.yaw)*this.speed*dt;
+    const yaw = c.traffic ? c.root.rotation.y : c.yaw;
+    const nx=c.root.position.x+Math.sin(yaw)*this.speed*dt;
+    const nz=c.root.position.z+Math.cos(yaw)*this.speed*dt;
     const blocked=world.collides(nx,nz,1.35);
-    if(!blocked && Math.abs(nx)<CONFIG.LIMIT-2 && Math.abs(nz)<CONFIG.LIMIT-2) c.root.position.set(nx,0,nz);
-    else this.speed=0;
-    c.root.rotation.y=c.yaw;
+    if(!blocked && Math.abs(nx)<CONFIG.LIMIT-2 && Math.abs(nz)<CONFIG.LIMIT-2) {
+      c.root.position.set(nx,0,nz);
+      if (c.traffic) { c.traffic.x=nx; c.traffic.z=nz; c.traffic.dir=1; c.traffic.speed=0; c.traffic.cruise=0; c.traffic.alongZ=false; c.yaw = yaw + steering*this.turnRate*dt*Math.sign(this.speed)*Math.min(1,Math.abs(this.speed)/4); c.root.rotation.y=c.yaw; }
+      else c.yaw = yaw + steering*this.turnRate*dt*Math.sign(this.speed)*Math.min(1,Math.abs(this.speed)/4);
+    } else this.speed=0;
+    c.root.rotation.y=c.traffic ? c.root.rotation.y : c.yaw;
     // Keep the car as the update/camera reference while occupied.
     this.help.textContent=`DRIVING  ${Math.round(Math.abs(this.speed)*3.6)} km/h  ·  E to exit`;
   },
