@@ -5,7 +5,8 @@ function updateCamera(dt) {
   const p = player.soldier.position;
   const yaw = world.camYaw, pit = world.camPitch;
   const dirX = -Math.sin(yaw) * Math.cos(pit), dirZ = -Math.cos(yaw) * Math.cos(pit), dirY = Math.sin(pit);
-  const maxD = player.wardrobeOpen ? 4.2 : 8;
+  const indoor = (typeof interior !== 'undefined') && interior.active;
+  const maxD = player.wardrobeOpen ? 4.2 : (indoor ? 5.5 : 8);
   let d = maxD;
   for (let t = 1; t <= maxD; t += 0.5) {
     if (world.hitObstacle(p.x + dirX * t, p.z + dirZ * t, 2 + dirY * t, 0.5)) { d = Math.max(2.2, t - 1); break; }

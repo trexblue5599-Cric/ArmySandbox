@@ -70,8 +70,10 @@ player.update = function(dt) {
     const nx = p.x + dx * speed * dt, nz = p.z + dz * speed * dt;
     if (!world.collides(nx, p.z, r)) p.x = nx;         // slide along walls: test each axis separately
     if (!world.collides(p.x, nz, r)) p.z = nz;
-    p.x = Math.max(-175, Math.min(175, p.x));
-    p.z = Math.max(-175, Math.min(175, p.z));
+    if (!(typeof interior !== 'undefined' && interior.active)) {
+      p.x = Math.max(-175, Math.min(175, p.x));
+      p.z = Math.max(-175, Math.min(175, p.z));
+    }
 
     const target = Math.atan2(dx, dz);                 // turn smoothly toward the direction of travel
     let diff = target - player.soldier.rotation.y;

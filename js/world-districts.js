@@ -32,8 +32,14 @@ world.initDistricts = function() {
     suburb(cx, cz) {
       flat(28, 28, 0x7cc05a, cx, 0.05, cz, 0.03);
       [[-7, -7], [7, -7], [-7, 7], [7, 7]].forEach(p => {
-        world.house(cx + p[0], cz + p[1], pick(WALLS), pick(ROOFS));
-        world.tree(cx + p[0] * 1.6, cz + p[1] * 1.45);
+        const hx = cx + p[0], hz = cz + p[1], wallC = pick(WALLS), roofC = pick(ROOFS);
+        if (world.isHeroHouse && world.isHeroHouse(hx, hz)) {
+          world.heroHouse(hx, hz, wallC, roofC);   // YOUR house (house-exterior.js)
+          rnd();                                   // keeps the random city exactly the same
+        } else {
+          world.house(hx, hz, wallC, roofC);
+          world.tree(cx + p[0] * 1.6, cz + p[1] * 1.45);
+        }
       });
     },
     park(cx, cz, fair) {
@@ -95,7 +101,7 @@ world.initDistricts = function() {
     (TYPES[DISTRICTS[row][col]] || TYPES.mid)(cx, cz);
     // sidewalk lamps and street trees
     [[-14.5, -14.5], [14.5, -14.5], [-14.5, 14.5], [14.5, 14.5], [0, -14.5], [0, 14.5], [-14.5, 0], [14.5, 0]].forEach(p => world.lamp(cx + p[0], cz + p[1]));
-    [[-14.5, -7], [14.5, 7], [-7, 14.5], [7, -14.5]].forEach(p => world.tree(cx + p[0], cz + p[1], 0.8));
+    [[-14.5, -7], [14.5, 7], [-7, 14.5], [7, -14.5]].forEach(p => { if (!(world.isHeroTree && world.isHeroTree(cx + p[0], cz + p[1]))) world.tree(cx + p[0], cz + p[1], 0.8); });
     world.cur = world.scene;
   }));
 

@@ -17,6 +17,8 @@ function startGame() {
   initHud();
   initMinimap();
   wardrobe.init();
+  interior.init();          // builds the inside of the house
+  interior.spawnInside();   // you start inside the house
 
   const loading = document.getElementById('loading');
   if (loading) loading.remove();
@@ -26,6 +28,7 @@ function startGame() {
     requestAnimationFrame(loop);
     const dt = Math.min(clock.getDelta(), 0.05);
     player.update(dt);
+    interior.update(dt);
     world.update(dt, player.soldier.position.x, player.soldier.position.z);
     updateCamera(dt);
     drawMinimap();
