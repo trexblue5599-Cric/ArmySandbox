@@ -1,7 +1,9 @@
 // js/world-people.js  -  people models + pedestrians walking the sidewalks
 world.initPeople = function() {
   const { ROADS, ROAD_W, BLOCKS, DISTRICTS, LAKE, CAR_COLORS, DAY_LENGTH, START_HOUR, DOWN_STYLES, MID_STYLES, WALLS, ROOFS, SHIRTS, PANTS, SKINS } = CONFIG;
-  const { rnd, pick, mix, smooth, getMat, flat, obstacle } = world;
+  const rnd = Math.random;                                             // people are random every time
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const { mix, smooth, getMat, flat, obstacle } = world;
   // ---------- PEOPLE ----------
   world.makePerson = function(o) {
     const g = new THREE.Group(), m = new THREE.Group(), P = { root: g, inner: m };

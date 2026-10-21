@@ -49,6 +49,22 @@ world.initProps = function() {
   // a yellow-bin pile (trash bags) at the town and harbour
   [[60, 142], [104, 142], [136, 140]].forEach(p => P('trah bag grey', 0.9, p[0], p[1], 0, false));
 
+  // ---------- MORE DETAIL IN THE CITY ----------
+  CONFIG.BLOCKS_Z.forEach((cz, row) => CONFIG.BLOCKS.forEach((cx, col) => {
+    const d = CONFIG.DISTRICTS[row][col];
+    if (d === 'industrial') P('Power Box', 1.8, cx - 13, cz + 14.6, 0, true);          // electric box on the pavement
+    if (d === 'suburb') P('Washing Line', 2.2, cx + 12, cz - 3, Math.PI / 2, false);   // washing in the back yard
+    if (d === 'mid' || d === 'downtown') P('Fire Exit', 2.6, cx + 11.2, cz - 3, Math.PI / 2, false);   // fire exit on the building side
+  }));
+  // traffic lights and stop signs at the middle crossing
+  P('Traffic Light', 4.2, 6.3, 6.3, Math.PI, true);
+  P('Traffic Light', 4.2, -6.3, -6.3, 0, true);
+  P('Stop sign', 2.6, 6.3, -6.3, Math.PI / 2, true);
+  P('Stop sign', 2.6, -6.3, 6.3, -Math.PI / 2, true);
+  // the ends of the farm fence
+  P('Fence End', 1.1, -124, 87.5, 0, false);
+  P('Fence End', 1.1, -6, 87.5, Math.PI, false);
+
   // ---------- LOAD + PLACE ----------
   const loader = new THREE.GLTFLoader();
   const names = [...new Set(want.map(w => w.name))];

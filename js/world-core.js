@@ -27,8 +27,16 @@ world.add = function(geo, color, x, y, z, parent = world.cur) {
   return m;
 };
 world.flat = function(w, d, color, x, y, z, h = 0.02) {
-  const m = world.add(new THREE.BoxGeometry(w, h, d), color, x, y, z);
-  m.castShadow = false;
+  // higher layers get a depth offset so they always win against the layer under them (no flicker)
+  world._flatCache = world._flatCache || {};
+  const key = color + ':' + y.toFixed(3);
+  const mat = world._flatCache[key] || (world._flatCache[key] = new THREE.MeshLambertMaterial({
+    color, polygonOffset: true, polygonOffsetFactor: -y * 300, polygonOffsetUnits: -y * 300
+  }));
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  m.castShadow = false; m.receiveShadow = true;
+  world.cur.add(m);
   return m;
 };
 world.obstacle = (x, z, hw, hd, h) => world.obstacles.push({ x, z, hw, hd, h });
@@ -48,7 +56,7 @@ world.initCore = function() {
   world.camYaw = 0;
   world.camPitch = 0.4;
 
-  world.camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 1000);
+  world.camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.3, 1000);
   world.renderer = new THREE.WebGLRenderer({ antialias: true });
   world.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   world.renderer.setSize(innerWidth, innerHeight);

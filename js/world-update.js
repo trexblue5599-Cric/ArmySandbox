@@ -18,19 +18,8 @@ world.initUpdate = function() {
     world.sun.target.updateMatrixWorld();
     world.stars.position.set(px, 0, pz);
 
-    // traffic
-    for (const c of world.traffic) {
-      // A traffic vehicle being driven by the player must not be moved by AI.
-      if (typeof vehicleDrive !== 'undefined' && vehicleDrive.active && vehicleDrive.active.traffic === c) continue;
-      const ahead = c.alongZ ? (pz - c.z) * c.dir : (px - c.x) * c.dir;
-      const lat = c.alongZ ? Math.abs(px - c.x) : Math.abs(pz - c.z);
-      const target = (ahead > 0 && ahead < 9 && lat < 2.4) ? 0 : c.cruise;
-      c.speed = target < c.speed ? Math.max(target, c.speed - 28 * dt) : Math.min(target, c.speed + 6 * dt);
-      if (c.alongZ) { c.z += c.dir * c.speed * dt; if (c.z > WRAP) c.z = -WRAP; if (c.z < -WRAP) c.z = WRAP; }
-      else          { c.x += c.dir * c.speed * dt; if (c.x > WRAP) c.x = -WRAP; if (c.x < -WRAP) c.x = WRAP; }
-      c.g.position.set(c.x, 0, c.z);
-      c.g.visible = Math.hypot(px - c.x, pz - c.z) < 170;
-    }
+    // traffic: cars drive their loops (world-traffic.js)
+    world.updateTraffic(dt, px, pz);
     // pedestrians walk around their block, and sometimes stop and stand for a while
     for (const p of world.peds) {
       if (p.wait > 0) { p.wait -= dt; if (p.wait <= 0) p.next = 10 + Math.random() * 20; }

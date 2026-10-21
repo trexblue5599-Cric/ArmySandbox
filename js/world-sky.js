@@ -76,7 +76,8 @@ world.initSky = function() {
     sun.color.copy(mix(0x9db4ff, 0xfff3dd, dayF).lerp(new THREE.Color(0xffb070), duskF * 0.6));
 
     starMat.opacity = Math.max(0, world.nf * 1.2 - 0.2);
-    lampMat.color.copy(mix(0x8a8a80, 0xffe9a8, world.nf));
+    lampMat.color.copy(mix(0x8a8a80, 0xfff8d0, world.nf));
+    if (world.setGlow) world.setGlow(world.nf);
     world.facadeMats.forEach(m => { m.emissiveIntensity = world.nf * 0.95; });
   }
   world.applyTime = applyTime;

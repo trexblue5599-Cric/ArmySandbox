@@ -13,6 +13,8 @@ function startGame() {
   vehicleDrive.init();
   world.initPeople();
   world.initProps();        // .glb props from the props/ folder
+  world.initVehicles();     // trains on the railway, boats on the water
+  world.initGlow();         // street lamps glow at night
   world.initUpdate();
   world.applyTime();
 
@@ -36,6 +38,7 @@ function startGame() {
     interior.update(dt);
     const ref = vehicleDrive.active ? vehicleDrive.active.root.position : player.soldier.position;
     world.update(dt, ref.x, ref.z);
+    world.updateVehicles(dt);
     if (vehicleDrive.active) vehicleDrive.updateCamera(dt); else updateCamera(dt);
     drawMinimap();
     updateHud();

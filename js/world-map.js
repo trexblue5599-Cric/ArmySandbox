@@ -49,6 +49,7 @@ MAP.blocked = function(x, z) {
   if (Math.abs(z - 160) < 8 && x > -4) return true;                 // highway
   if (x > -132 && x < -24 && z > 118 && z < 178) return true;       // parking, diner, airport
   if (x > 36 && x < 150 && z > 124 && z < 146) return true;         // town
+  if (Math.abs(x - -133) < 3) return true;                          // the railway
   if (x > -178 && x < -128 && z > 36 && z < 100) return true;       // quarry
   return false;
 };
