@@ -4,6 +4,8 @@ const DUDE_FILE = 'dude.glb';    // must be next to index.html
 const DUDE_HEIGHT = 1.9;         // how tall he is in the world
 const DUDE_FACING = 0;           // if everyone walks backwards, change 0 to Math.PI
 const ARM_REST = 72 * Math.PI / 180;   // the glb is in a T-pose, so arms are lowered by this angle
+const DUDE_CLOTH = 0.022;        // how far clothes sit off the skin (model units): raise it for thicker clothes
+const CAP = { shoulder: 0.075, elbow: 0.062, hip: 0.1, knee: 0.07 };   // joint caps that hide the gaps when limbs move
 
 const dude = { ready: false, T: null, mat: null };
 
@@ -100,6 +102,19 @@ dude.build = function(root) {
   PART_NAMES.forEach(n => {
     const P = parts[n];
     P.count = P.reg.length;
+    // smooth normal per vertex: average the flat normals of every triangle that shares the same point
+    const sum = new Map();
+    const keyOf = i => Math.round(P.pos[i * 3] * 1e4) + ',' + Math.round(P.pos[i * 3 + 1] * 1e4) + ',' + Math.round(P.pos[i * 3 + 2] * 1e4);
+    for (let i = 0; i < P.count; i++) {
+      const k = keyOf(i), a = sum.get(k) || [0, 0, 0];
+      a[0] += P.nor[i * 3]; a[1] += P.nor[i * 3 + 1]; a[2] += P.nor[i * 3 + 2];
+      sum.set(k, a);
+    }
+    P.smooth = new Float32Array(P.count * 3);
+    for (let i = 0; i < P.count; i++) {
+      const a = sum.get(keyOf(i)), l = Math.hypot(a[0], a[1], a[2]) || 1;
+      P.smooth[i * 3] = a[0] / l; P.smooth[i * 3 + 1] = a[1] / l; P.smooth[i * 3 + 2] = a[2] / l;
+    }
     P.posAttr = new THREE.BufferAttribute(new Float32Array(P.pos), 3);
     P.norAttr = new THREE.BufferAttribute(new Float32Array(P.nor), 3);
     P.reg = Uint8Array.from(P.reg);
@@ -114,6 +129,31 @@ dude.build = function(root) {
   dude.mat = new THREE.MeshLambertMaterial({ vertexColors: true });
   dude.eyeGeo = new THREE.BoxGeometry(0.022, 0.024, 0.01);
   dude.eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+};
+
+// ---------------------------------------------------------------- clothes as a layer over the skin
+// The clothes are copies of the body surface pushed out a little (DUDE_CLOTH), so the skin
+// still shows where there is no cloth (hands, neck, bare arms). Built once and shared by everyone.
+dude.ovCache = {};
+dude.capCache = {};
+dude.overlayGeo = function(part, regs, minY) {               // the part's triangles that belong to these colour regions
+  const key = part + '|' + regs.join(',') + '|' + minY;
+  if (dude.ovCache[key]) return dude.ovCache[key];
+  const P = dude.T.parts[part], pa = P.posAttr.array, sn = P.smooth, pos = [], nor = [];
+  for (let v = 0; v < P.count; v++) {
+    if (regs.indexOf(P.reg[v]) < 0 || P.ys[v] < minY) continue;
+    for (let k = 0; k < 3; k++) {
+      pos.push(pa[v * 3 + k] + sn[v * 3 + k] * DUDE_CLOTH);
+      nor.push(sn[v * 3 + k]);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  return (dude.ovCache[key] = g);
+};
+dude.capGeo = function(r) {
+  return dude.capCache[r] || (dude.capCache[r] = new THREE.SphereGeometry(r, 10, 8));
 };
 
 // ---------------------------------------------------------------- making people
@@ -136,7 +176,11 @@ dude.make = function(look) {
   model.scale.setScalar(S);
   model.position.y = -T.minY * S;       // feet on the ground
   model.rotation.y = DUDE_FACING;
-  const d = { group, rig, hips, body, look, parts: {}, knees: {}, elbows: {}, meshes: {}, acc: null, phase: Math.random() * 6, t: Math.random() * 10, mv: 0 };
+  const d = { group, rig, hips, body, look, parts: {}, knees: {}, elbows: {}, meshes: {}, cloth: {}, caps: {}, acc: null, phase: Math.random() * 6, t: Math.random() * 10, mv: 0 };
+  d.mats = {
+    shirt: new THREE.MeshLambertMaterial(), pants: new THREE.MeshLambertMaterial(),
+    skin: new THREE.MeshLambertMaterial()
+  };
 
   function mk(name) {
     const P = T.parts[name];
@@ -148,7 +192,15 @@ dude.make = function(look) {
     const m = new THREE.Mesh(geo, dude.mat);
     m.castShadow = true; m.frustumCulled = false;
     d.meshes[name] = m;
-    return m;
+    const grp = new THREE.Group(); grp.add(m);
+    const arm = name.indexOf('arm') === 0 || name.indexOf('fore') === 0;
+    const layer = (regs, mat) => {
+      const mesh = new THREE.Mesh(dude.overlayGeo(name, regs, -Infinity), mat);
+      mesh.castShadow = true; mesh.frustumCulled = false; grp.add(mesh); return mesh;
+    };
+    d.cloth[name] = { shirt: layer([REG.SHIRT], d.mats.shirt), pants: layer([REG.PANTS], d.mats.pants) };
+    if (arm) d.cloth[name].band = layer([REG.FOREARM], d.mats.shirt);   // the sleeve end: shown only for long sleeves
+    return grp;
   }
   body.add(mk('body'));
   ['L', 'R'].forEach(sd => {
@@ -169,23 +221,55 @@ dude.make = function(look) {
     d.parts['arm' + sd] = swing; d.elbows[sd] = elbow;
   });
   [-1, 1].forEach(s => { const e = new THREE.Mesh(dude.eyeGeo, dude.eyeMat); e.position.set(s * 0.04, 0.035, 0.11); body.add(e); });
+  // joint caps: hide the gaps when an arm or leg bends
+  ['L', 'R'].forEach(sd => {
+    const cap = (r, mat, parent, key) => { const m = new THREE.Mesh(dude.capGeo(r), mat); m.castShadow = true; parent.add(m); d.caps[key] = m; };
+    cap(CAP.shoulder, d.mats.shirt, d.parts['arm' + sd], 'shoulder' + sd);
+    cap(CAP.elbow, d.mats.shirt, d.elbows[sd], 'elbow' + sd);
+    cap(CAP.hip, d.mats.pants, d.parts['leg' + sd], 'hip' + sd);
+    cap(CAP.knee, d.mats.pants, d.knees[sd], 'knee' + sd);
+  });
 
   // paint the colours + build hats/glasses/etc.
   d.dress = function(l) {
     l = d.look = ACC.fix(l);
     const o = ACC.get('outfit', l.outfit);
     const shirt = ACC.shirtOf(l, o), pants = ACC.pantsOf(l, o);
-    const table = [o.shoes, pants, ACC.SKINS[l.skin % ACC.SKINS.length], shirt, ACC.HAIRS[l.hair % ACC.HAIRS.length], o.long ? shirt : ACC.SKINS[l.skin % ACC.SKINS.length], 0x15151a]
+    const skin = ACC.SKINS[l.skin % ACC.SKINS.length];
+    const shorts = o.shortsY !== undefined;
+    // the skin mesh: skin everywhere under the clothes, so gaps show a dark shade of the cloth not a bright patch
+    const shade = c => new THREE.Color(c).multiplyScalar(0.7).getHex();
+    const table = [o.shoes, shade(pants), skin, shade(shirt), ACC.HAIRS[l.hair % ACC.HAIRS.length], skin, 0x15151a]
       .map(h => new THREE.Color(h));
     PART_NAMES.forEach(n => {
       const P = T.parts[n], attr = d.meshes[n].geometry.attributes.color, arr = attr.array;
       for (let i = 0; i < P.count; i++) {
         let r = P.reg[i];
-        if (r === REG.PANTS && o.shortsY !== undefined && P.ys[i] < o.shortsY) r = REG.SKIN;
+        if (r === REG.PANTS && shorts && P.ys[i] < o.shortsY) r = REG.SKIN;
         const c = table[r];
         arr[i * 3] = c.r; arr[i * 3 + 1] = c.g; arr[i * 3 + 2] = c.b;
       }
       attr.needsUpdate = true;
+    });
+    // the clothes themselves
+    d.mats.shirt.color.setHex(shirt);
+    d.mats.pants.color.setHex(pants);
+    d.mats.skin.color.setHex(skin);
+    PART_NAMES.forEach(n => {
+      const c = d.cloth[n]; if (!c) return;
+      c.shirt.geometry = dude.overlayGeo(n, [REG.SHIRT], -Infinity);
+      c.pants.geometry = dude.overlayGeo(n, [REG.PANTS], shorts ? o.shortsY : -Infinity);
+      c.pants.visible = c.pants.geometry.attributes.position.count > 0;
+      if (c.band) c.band.visible = !!o.long;
+    });
+    const sleeves = !!o.long;
+    ['L', 'R'].forEach(sd => {
+      d.caps['shoulder' + sd].material = d.mats.shirt;
+      d.caps['elbow' + sd].material = sleeves ? d.mats.shirt : d.mats.skin;   // bare elbows for short sleeves
+      d.caps['elbow' + sd].visible = true;
+      d.caps['hip' + sd].material = shorts ? d.mats.skin : d.mats.pants;      // bare knees for shorts / dresses
+      d.caps['knee' + sd].material = shorts ? d.mats.skin : d.mats.pants;
+      d.caps['hip' + sd].visible = true; d.caps['knee' + sd].visible = true;
     });
     if (d.acc) { body.remove(d.acc); ACC.dispose(d.acc); }
     d.acc = ACC.attach(body, l);
