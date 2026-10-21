@@ -96,6 +96,7 @@ interior.teleport = function(inside, pos, rotY, yaw) {
   player.soldier.rotation.y = rotY;
   player.speed = 0;
   world.camYaw = yaw;
+  if (typeof fp !== 'undefined') fp.pitch = 0;
   if (inside && !interior.active) { interior._outPitch = world.camPitch; world.camPitch = Math.max(world.camPitch, 0.55); }
   if (!inside && interior.active && interior._outPitch) world.camPitch = interior._outPitch;
   interior.active = inside;

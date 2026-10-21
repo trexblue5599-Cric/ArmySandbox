@@ -41,8 +41,11 @@ player.initControls = function() {
   });
   player.pad.addEventListener('pointermove', e => {
     if (e.pointerId !== lookId) return;
-    world.camYaw -= (e.clientX - lx) * 0.008;
-    world.camPitch = Math.max(0.12, Math.min(1.0, world.camPitch + (e.clientY - ly) * 0.004));
+    if (typeof fp !== 'undefined' && fp.active()) fp.look(e.clientX - lx, e.clientY - ly);   // first person
+    else {
+      world.camYaw -= (e.clientX - lx) * 0.008;
+      world.camPitch = Math.max(0.12, Math.min(1.0, world.camPitch + (e.clientY - ly) * 0.004));
+    }
     lx = e.clientX; ly = e.clientY;
   });
   const endLook = e => { if (e.pointerId === lookId) lookId = null; };

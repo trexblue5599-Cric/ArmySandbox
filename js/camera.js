@@ -2,6 +2,13 @@
 const camTarget = new THREE.Vector3();
 let camDist = 8;
 function updateCamera(dt) {
+  // first person (the default). Only the wardrobe uses the third-person camera below.
+  if (typeof fp !== 'undefined' && fp.ready) {
+    const on = fp.active();
+    player.dude.group.visible = !on;          // hide your own body while you look through its eyes
+    if (on) { fp.updateCamera(dt); return; }
+    fp.leave();
+  }
   const p = player.soldier.position;
   const yaw = world.camYaw, pit = world.camPitch;
   const dirX = -Math.sin(yaw) * Math.cos(pit), dirZ = -Math.cos(yaw) * Math.cos(pit), dirY = Math.sin(pit);

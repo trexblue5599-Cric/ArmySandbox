@@ -21,7 +21,7 @@ function initHud() {
 
   const hint = document.createElement('div');
   hint.id = 'hint';
-  hint.textContent = 'Left: move  |  Drag right side: look  |  Hold RUN: sprint  |  Tap the clock: skip time  |  Tap \uD83D\uDC55: change clothes';
+  hint.textContent = 'Left: move  |  Drag right side: look around  |  Hold RUN: sprint  |  Tap the clock: skip time  |  Tap \uD83D\uDC55: change clothes';
   document.body.appendChild(hint);
   setTimeout(() => { hint.style.opacity = 0; }, 9000);
 }

@@ -32,6 +32,7 @@ player.loadLook = function() {
 player.setLook = function(look) {
   player.look = ACC.fix(look);
   player.dude.dress(player.look);
+  if (typeof fp !== 'undefined' && fp.ready) fp.dress(player.look);
   try { localStorage.setItem(LOOK_KEY, JSON.stringify(player.look)); } catch (e) {}
 };
 
@@ -49,6 +50,7 @@ player.update = function(dt) {
     return;
   }
 
+  const fpOn = (typeof fp !== 'undefined') && fp.active();
   let ix = player.jx, iz = -player.jz;                 // iz: + = forward
   if (k.KeyW || k.ArrowUp) iz += 1;
   if (k.KeyS || k.ArrowDown) iz -= 1;
@@ -75,12 +77,15 @@ player.update = function(dt) {
       p.z = Math.max(-175, Math.min(175, p.z));
     }
 
-    const target = Math.atan2(dx, dz);                 // turn smoothly toward the direction of travel
-    let diff = target - player.soldier.rotation.y;
-    diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-    player.soldier.rotation.y += diff * Math.min(1, 14 * dt);
+    if (!fpOn) {
+      const target = Math.atan2(dx, dz);               // third person: turn smoothly toward the direction of travel
+      let diff = target - player.soldier.rotation.y;
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      player.soldier.rotation.y += diff * Math.min(1, 14 * dt);
+    }
   }
+  if (fpOn) player.soldier.rotation.y = world.camYaw;  // first person: the body always faces where you look
   const moved = dt > 0 ? Math.hypot(p.x - bx, p.z - bz) / dt : 0;
   player.speed += (moved - player.speed) * Math.min(1, 12 * dt);
-  player.dude.animate(dt, player.speed);
+  if (!fpOn) player.dude.animate(dt, player.speed);   // nobody sees the body in first person
 };

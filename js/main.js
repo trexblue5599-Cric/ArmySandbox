@@ -14,6 +14,7 @@ function startGame() {
   world.applyTime();
 
   player.init();
+  fp.init();                // first-person camera + your arm
   initHud();
   initMinimap();
   wardrobe.init();
@@ -33,7 +34,7 @@ function startGame() {
     updateCamera(dt);
     drawMinimap();
     updateHud();
-    world.renderer.render(world.scene, world.camera);
+    fp.render(dt);            // draws the world, then your arm on top
   }
 
   addEventListener('resize', () => {
