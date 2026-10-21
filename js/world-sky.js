@@ -8,7 +8,7 @@ world.initSky = function() {
   const skyG = skyC.getContext('2d');
   const skyTex = new THREE.CanvasTexture(skyC);
   world.scene.background = skyTex;
-  world.scene.fog = new THREE.Fog(0xdbe9f4, 70, 175);
+  world.scene.fog = new THREE.Fog(0xdbe9f4, 110, 250);
 
 
   const hemi = new THREE.HemisphereLight(0xbfd9ff, 0x7a776c, 0.75);

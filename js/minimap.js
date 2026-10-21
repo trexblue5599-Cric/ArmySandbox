@@ -8,12 +8,13 @@ function initMinimap() {
   document.body.appendChild(mini);
   mctx = mini.getContext('2d');
   bigMap = document.createElement('canvas');
-  bigMap.width = bigMap.height = 360 * PPU;
+  bigMap.width = bigMap.height = 2 * CONFIG.LIMIT * PPU;
   (function drawBigMap() {
   const g = bigMap.getContext('2d');
-  const X = v => (v + 180) * PPU;
+  const X = v => (v + CONFIG.LIMIT) * PPU;
   const HF = CONFIG.HALF;
-  g.fillStyle = '#6fae4f'; g.fillRect(0, 0, bigMap.width, bigMap.height);
+  g.fillStyle = '#3a9ad0'; g.fillRect(0, 0, bigMap.width, bigMap.height);
+  g.fillStyle = '#6fae4f'; g.fillRect(X(-(CONFIG.LIMIT - 14)), X(-(CONFIG.LIMIT - 14)), 2 * (CONFIG.LIMIT - 14) * PPU, 2 * (CONFIG.LIMIT - 14) * PPU);
   g.fillStyle = '#9a9c98'; g.fillRect(X(-HF), X(-HF), 2 * HF * PPU, 2 * HF * PPU);
   g.fillStyle = '#45454a';
   CONFIG.ROADS.forEach(r => {
@@ -40,7 +41,7 @@ function drawMinimap() {
   mctx.translate(52, 52);
   mctx.rotate(yaw + Math.PI);
   mctx.scale(zs, zs);
-  mctx.translate(-(p.x + 180) * PPU, -(p.z + 180) * PPU);
+  mctx.translate(-(p.x + CONFIG.LIMIT) * PPU, -(p.z + CONFIG.LIMIT) * PPU);
   mctx.drawImage(bigMap, 0, 0);
   mctx.restore();
   // you (arrow)

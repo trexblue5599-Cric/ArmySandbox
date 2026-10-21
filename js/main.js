@@ -6,10 +6,12 @@ function startGame() {
   world.initRoads();
   world.initBuildings();
   world.initDistricts();
-  world.initOutskirts();
+  world.initMap();          // farmland, lake, harbour, airport, roads outside the city
+  world.initOutskirts();    // forests and mountains
   world.initBatches();
   world.initTraffic();
   world.initPeople();
+  world.initProps();        // .glb props from the props/ folder
   world.initUpdate();
   world.applyTime();
 

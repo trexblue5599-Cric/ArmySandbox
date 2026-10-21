@@ -3,10 +3,12 @@ const CONFIG = {
   DAY_LENGTH: 240,   // seconds for one full 24-hour day
   START_HOUR: 9,     // game starts at 9 AM
 
+  LIMIT: 260,                     // the playable area is a square from -LIMIT to +LIMIT
   HALF: 126,                      // the city is 2*HALF wide (roads end at +-HALF)
   ROADS: [-120, -80, -40, 0, 40, 80, 120],   // road centre lines (used for both x and z)
   ROAD_W: 10,
   BLOCKS: [-100, -60, -20, 20, 60, 100],     // block centres (x and z); each block is 30 x 30
+  BLOCKS_Z: [-100, -60, -20, 20, 60],        // rows of city blocks (the row at z=100 is farmland)
 
   // MAP: rows go north -> south, columns go west -> east.
   // types: downtown, tower, mid, suburb, park, fair, plaza, industrial
@@ -15,8 +17,7 @@ const CONFIG = {
     ['suburb', 'mid',      'mid',      'downtown', 'mid',        'industrial'],
     ['fair',   'mid',      'downtown', 'tower',    'downtown',   'mid'],
     ['mid',    'downtown', 'downtown', 'downtown', 'plaza',      'mid'],
-    ['suburb', 'mid',      'mid',      'park',     'mid',        'suburb'],
-    ['suburb', 'suburb',   'park',     'mid',      'suburb',     'suburb']
+    ['suburb', 'mid',      'mid',      'park',     'mid',        'suburb']
   ],
 
   LAKE: { x: 172, z: -172 },

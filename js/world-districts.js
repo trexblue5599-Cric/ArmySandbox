@@ -93,7 +93,7 @@ world.initDistricts = function() {
   TYPES.fair = (cx, cz) => TYPES.park(cx, cz, true);
 
   // ---------- BUILD THE BLOCKS ----------
-  BLOCKS.forEach((cz, row) => BLOCKS.forEach((cx, col) => {
+  CONFIG.BLOCKS_Z.forEach((cz, row) => BLOCKS.forEach((cx, col) => {
     const G = new THREE.Group();
     world.scene.add(G);
     world.cur = G;

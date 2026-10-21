@@ -73,8 +73,8 @@ player.update = function(dt) {
     if (!world.collides(nx, p.z, r)) p.x = nx;         // slide along walls: test each axis separately
     if (!world.collides(p.x, nz, r)) p.z = nz;
     if (!(typeof interior !== 'undefined' && interior.active)) {
-      p.x = Math.max(-175, Math.min(175, p.x));
-      p.z = Math.max(-175, Math.min(175, p.z));
+      p.x = Math.max(-CONFIG.LIMIT, Math.min(CONFIG.LIMIT, p.x));
+      p.z = Math.max(-CONFIG.LIMIT, Math.min(CONFIG.LIMIT, p.z));
     }
 
     if (!fpOn) {
