@@ -65,19 +65,26 @@ ACC.pantsOf = (look, o) => o.pantsFollow ? ACC.shirtOf(look, o) : o.pants[look.c
 // builds all the extra pieces for a look and adds them to `parent` (the dude's body). Returns the group.
 ACC.attach = function(parent, look) {
   const g = new THREE.Group();
+  // torso pieces (vest, backpack, outfit extras) sit ON the clothes layer, which is DUDE_CLOTH thick.
+  // The torso is about 0.34 wide and 0.27 deep, so grow those pieces by the layer thickness on each side.
+  const wear = new THREE.Group();
+  wear.scale.set(1 + 2 * DUDE_CLOTH / 0.34, 1, 1 + 2 * DUDE_CLOTH / 0.27);
+  g.add(wear);
   const o = ACC.get('outfit', look.outfit);
-  const pick = (slot, id, idx) => {
+  const pick = (slot, id, idx, into) => {
     const d = ACC.get(slot, id);
     if (!d || !d.build) return;
     const cols = d.colors || ACC.COLORS;
-    g.add(d.build(cols[idx % cols.length]));
+    into.add(d.build(cols[idx % cols.length]));
   };
-  pick('hat', look.hat, look.hc);
-  pick('glasses', look.glasses, 0);
-  pick('back', look.back, look.bc);
-  pick('vest', look.vest, 0);
-  pick('face', look.face, look.fc);
-  if (o && o.build) g.add(o.build(ACC.shirtOf(look, o), ACC.pantsOf(look, o)));
+  // head pieces: hat, glasses and face stay the same size
+  pick('hat', look.hat, look.hc, g);
+  pick('glasses', look.glasses, 0, g);
+  pick('face', look.face, look.fc, g);
+  // torso pieces: back, vest, outfit extras (tie, hood, skirt...)
+  pick('back', look.back, look.bc, wear);
+  pick('vest', look.vest, 0, wear);
+  if (o && o.build) wear.add(o.build(ACC.shirtOf(look, o), ACC.pantsOf(look, o)));
   parent.add(g);
   return g;
 };
