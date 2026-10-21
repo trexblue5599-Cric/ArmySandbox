@@ -10,6 +10,7 @@ function startGame() {
   world.initOutskirts();    // forests and mountains
   world.initBatches();
   world.initTraffic();
+  vehicleDrive.init();
   world.initPeople();
   world.initProps();        // .glb props from the props/ folder
   world.initUpdate();
@@ -30,10 +31,12 @@ function startGame() {
   function loop() {
     requestAnimationFrame(loop);
     const dt = Math.min(clock.getDelta(), 0.05);
-    player.update(dt);
+    vehicleDrive.update(dt);
+    if (!vehicleDrive.active) player.update(dt);
     interior.update(dt);
-    world.update(dt, player.soldier.position.x, player.soldier.position.z);
-    updateCamera(dt);
+    const ref = vehicleDrive.active ? vehicleDrive.active.root.position : player.soldier.position;
+    world.update(dt, ref.x, ref.z);
+    if (vehicleDrive.active) vehicleDrive.updateCamera(dt); else updateCamera(dt);
     drawMinimap();
     updateHud();
     fp.render(dt);            // draws the world, then your arm on top

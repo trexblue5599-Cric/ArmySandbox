@@ -1,6 +1,6 @@
 // js/config.js  -  SETTINGS. Change the numbers/lists here; no other file needs to be touched.
 const CONFIG = {
-  DAY_LENGTH: 240,   // seconds for one full 24-hour day
+  DAY_LENGTH: 600,   // seconds (10 real minutes) for one full 24-hour day
   START_HOUR: 9,     // game starts at 9 AM
 
   LIMIT: 520,                     // the playable area is a square from -LIMIT to +LIMIT

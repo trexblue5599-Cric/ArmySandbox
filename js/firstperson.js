@@ -220,7 +220,7 @@ fp.render = function(dt) {
   const r = world.renderer;
   r.clear();
   r.render(world.scene, world.camera);
-  if (!fp.active()) return;
+  if (!fp.active() || (typeof vehicleDrive !== 'undefined' && vehicleDrive.active)) return;
   fp.updateArm(dt);
   r.clearDepth();
   r.render(fp.scene, fp.cam);
