@@ -38,29 +38,43 @@ const vehicleDrive = {
   makeControls() {
     const style = (el, css) => Object.assign(el.style, css);
     const panel = document.createElement('div'); panel.id = 'drive-controls';
-    style(panel, {position:'fixed', right:'14px', bottom:'18px', zIndex:'30', display:'none', gap:'8px', alignItems:'center', userSelect:'none', touchAction:'none', font:'bold 16px sans-serif'});
+    style(panel, {position:'fixed', right:'14px', bottom:'18px', zIndex:'50', display:'none', gap:'8px', alignItems:'center', userSelect:'none', touchAction:'none', font:'bold 16px sans-serif'});
+    const releases = [];   // the car keys the buttons press
     const make = (label, key, css={}) => {
       const b = document.createElement('button'); b.textContent = label; b.setAttribute('aria-label', label);
       style(b, Object.assign({width:'58px',height:'58px',border:'2px solid rgba(255,255,255,.8)',borderRadius:'14px',background:'rgba(20,30,40,.78)',color:'#fff',fontSize:'20px',fontWeight:'bold',touchAction:'none'}, css));
-      const down = e => { e.preventDefault(); this.keys[key] = true; if (b.setPointerCapture && e.pointerId !== undefined) { try { b.setPointerCapture(e.pointerId); } catch(_) {} } };
+      const down = e => { e.preventDefault(); this.keys[key] = true; };
       const up = e => { if(e) e.preventDefault(); this.keys[key] = false; };
-      b.addEventListener('pointerdown', down); b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
+      b.addEventListener('pointerdown', down); b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up);
+      b.addEventListener('touchstart', down, {passive:false}); b.addEventListener('touchend', up); b.addEventListener('touchcancel', up);
+      releases.push(key);
       panel.appendChild(b); return b;
     };
+    // if a finger lifts anywhere (even off the button), let go of every car key
+    const letGo = () => { releases.forEach(k => { this.keys[k] = false; }); };
+    ['pointerup', 'pointercancel', 'touchend', 'touchcancel', 'blur'].forEach(ev => addEventListener(ev, letGo));
     const steer = document.createElement('div'); style(steer,{display:'flex',gap:'6px'});
     const left = make('◀','KeyA'), right = make('▶','KeyD'); steer.append(left,right);
+    const steerPanel = document.createElement('div'); steerPanel.id = 'steer-controls';
+    style(steerPanel, {position:'fixed', left:'14px', bottom:'18px', zIndex:'50', display:'none', userSelect:'none', touchAction:'none'});
+    steerPanel.appendChild(steer);
+    document.body.appendChild(steerPanel); this.steerPanel = steerPanel;
     const pedals = document.createElement('div'); style(pedals,{display:'flex',gap:'6px'});
     const back = make('▼','KeyS'), forward = make('▲','KeyW'); pedals.append(back,forward);
-    panel.append(steer,pedals);
+    panel.append(pedals);
     const exit = make('EXIT','KeyE',{width:'56px',fontSize:'12px',background:'rgba(150,35,25,.85)'});
     exit.addEventListener('pointerdown', e => { e.preventDefault(); this.toggle(true); });
     document.body.appendChild(panel); this.panel = panel;
     const enter = document.createElement('button'); enter.id='enter-car-btn'; enter.textContent='DRIVE  [E]';
-    style(enter,{position:'fixed',left:'50%',bottom:'24px',transform:'translateX(-50%)',zIndex:'30',display:'none',padding:'13px 20px',border:'2px solid white',borderRadius:'12px',background:'rgba(20,110,45,.9)',color:'white',font:'bold 16px sans-serif'});
+    style(enter,{position:'fixed',left:'50%',bottom:'24px',transform:'translateX(-50%)',zIndex:'50',display:'none',padding:'13px 20px',border:'2px solid white',borderRadius:'12px',background:'rgba(20,110,45,.9)',color:'white',font:'bold 16px sans-serif'});
     enter.addEventListener('click', () => this.toggle()); document.body.appendChild(enter); this.enterButton=enter;
     const help = document.createElement('div'); help.textContent='E: enter / exit car';
     style(help,{position:'fixed',left:'50%',top:'12px',transform:'translateX(-50%)',zIndex:'25',display:'none',padding:'7px 10px',borderRadius:'8px',background:'rgba(0,0,0,.6)',color:'white',font:'13px sans-serif',pointerEvents:'none'});
     document.body.appendChild(help); this.help=help;
+  },
+  setWalkControls(on) {
+    const d = on ? '' : 'none';
+    ['joystick-base','joystick-knob','fire-btn'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = d; });
   },
   allCars() {
     // Include every spawned traffic car as well as the extra parked vehicles.
@@ -83,13 +97,15 @@ const vehicleDrive = {
       const sideX=Math.cos(yaw)*1.8, sideZ=-Math.sin(yaw)*1.8;
       p.set(c.root.position.x+sideX,0,c.root.position.z+sideZ);
       player.soldier.visible=true; player.model.visible=true;
-      this.active=null; this.speed=0; this.panel.style.display='none'; this.help.style.display='none';
+      this.active=null; this.speed=0; this.keys={}; this.panel.style.display='none'; this.steerPanel.style.display='none'; this.help.style.display='none';
+      this.setWalkControls(true);
       return;
     }
     const c=this.nearest(); if(!c) return;
     if (c.traffic) { c.yaw = c.root.rotation.y; c.x = c.root.position.x; c.z = c.root.position.z; }
-    this.active=c; this.speed=0; player.soldier.visible=false;
-    this.panel.style.display='flex'; this.enterButton.style.display='none'; this.help.style.display='block';
+    this.active=c; this.speed=0; this.keys={}; player.soldier.visible=false;
+    this.panel.style.display='flex'; this.steerPanel.style.display='flex'; this.enterButton.style.display='none'; this.help.style.display='block';
+    this.setWalkControls(false);
     if (typeof fp!=='undefined' && fp.ready) fp.leave();
   },
   update(dt) {
@@ -104,7 +120,7 @@ const vehicleDrive = {
     if(forward) this.speed=Math.min(this.maxSpeed,this.speed+this.accel*dt);
     else if(reverse) this.speed=Math.max(-this.reverseSpeed,this.speed-this.accel*dt);
     else this.speed += (this.speed>0?-1:1)*Math.min(Math.abs(this.speed),this.brake*dt);
-    const steering=(right?1:0)-(left?1:0);
+    const steering=(left?1:0)-(right?1:0);   // left button = turn left, right button = turn right
     if(Math.abs(this.speed)>0.15) c.yaw += steering*this.turnRate*dt*Math.sign(this.speed)*Math.min(1,Math.abs(this.speed)/4);
     const yaw = c.traffic ? c.root.rotation.y : c.yaw;
     const nx=c.root.position.x+Math.sin(yaw)*this.speed*dt;
