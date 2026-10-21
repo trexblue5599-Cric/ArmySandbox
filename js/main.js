@@ -8,6 +8,7 @@ function startGame() {
   world.initDistricts();
   world.initMap();          // farmland, lake, harbour, airport, roads outside the city
   world.initOutskirts();    // forests and mountains
+  world.initFill();         // trees, bushes and paved slabs on the empty land
   world.initBatches();
   world.initTraffic();
   vehicleDrive.init();

@@ -129,6 +129,9 @@ dude.build = function(root) {
   dude.mat = new THREE.MeshLambertMaterial({ vertexColors: true });
   dude.eyeGeo = new THREE.BoxGeometry(0.022, 0.024, 0.01);
   dude.eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+  dude.eyeWhiteGeo = new THREE.CircleGeometry(0.024, 12);       // the white of the eye
+  dude.eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xf4f4f4 });
+  dude.pupilGeo = new THREE.CircleGeometry(0.011, 10);          // the black pupil
 };
 
 // ---------------------------------------------------------------- clothes as a layer over the skin
@@ -220,7 +223,10 @@ dude.make = function(look) {
     elbow.add(mk('fore' + sd)); low.add(elbow); swing.add(low); body.add(swing);
     d.parts['arm' + sd] = swing; d.elbows[sd] = elbow;
   });
-  [-1, 1].forEach(s => { const e = new THREE.Mesh(dude.eyeGeo, dude.eyeMat); e.position.set(s * 0.04, 0.035, 0.11); body.add(e); });
+  [-1, 1].forEach(s => {                       // eyes: a white disc with a black pupil
+    const w = new THREE.Mesh(dude.eyeWhiteGeo, dude.eyeWhiteMat); w.position.set(s * 0.042, 0.035, 0.112); body.add(w);
+    const p = new THREE.Mesh(dude.pupilGeo, dude.eyeMat); p.position.set(s * 0.042, 0.033, 0.1135); body.add(p);
+  });
   // joint caps: hide the gaps when an arm or leg bends
   ['L', 'R'].forEach(sd => {
     const cap = (r, mat, parent, key) => { const m = new THREE.Mesh(dude.capGeo(r), mat); m.castShadow = true; parent.add(m); d.caps[key] = m; };
