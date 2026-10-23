@@ -32,7 +32,7 @@ const B = {}; BONES.forEach((b, i) => { B[b[0]] = i; });
 const JOINT_BONE = {};
 [['head', [0, 1]], ['chest', [2, 3, 8, 21]], ['hips', [5, 6]],
  ['armL', [4]], ['foreL', [9, 10, 11, 12, 17, 18, 19, 20]],
- ['armR', [22]], ['foreR', [23, 24, 25, 26, 27, 32, 33]],
+ ['armR', [22]], ['foreR', [23, 24, 25, 26, 27, 28, 32, 33]],   // 28 = right thumb
  ['thighL', [7]], ['shinL', [14, 15, 16]], ['thighR', [13]], ['shinR', [29, 30, 31]]
 ].forEach(e => e[1].forEach(j => { JOINT_BONE[j] = B[e[0]]; }));
 
@@ -41,6 +41,8 @@ const M = { SKIN: 0, SHIRT: 1, PANTS_A: 2, PANTS_B: 3, PANTS_C: 4, SHOE: 5, HAIR
 const N_MATS = 9;
 
 const dude = { ready: false };
+// the face (model units): a flat panel facing +z. Cartoon eyes: white disc, black outline, small pupil, thick brows.
+const FACE = { Z: 0.106, EYE_X: 0.042, EYE_Y: 0.05, EYE_R: 0.025, OUTLINE: 0.0045, PUPIL: 0.0095, BROW_Y: 0.089 };
 
 // ---------------------------------------------------------------- one-time setup
 dude.load = function(done) {
@@ -78,6 +80,12 @@ dude.build = function(gltf) {
     main[i] = list[0][0];
   }
   const S = MIX.HEIGHT / (maxY - minY);
+  // the model has small raised eye slits: flatten them onto the face so the cartoon eyes sit cleanly on it
+  for (let i = 0; i < n; i++) {
+    if (main[i] !== B.head) continue;
+    const x = Math.abs(pos[i * 3]), y = pos[i * 3 + 1], z = pos[i * 3 + 2];
+    if (x > 0.012 && x < 0.072 && y > 0.044 && y < 0.082 && z > 0.095) pos[i * 3 + 2] = FACE.Z;
+  }
 
   // sort every triangle into a material region
   const src = g.index; const nt = (src ? src.count : n) / 3;
@@ -93,8 +101,7 @@ dude.build = function(gltf) {
     let m;
     const legPants = () => (cy >= -1.02 ? M.PANTS_A : cy >= -1.18 ? M.PANTS_B : M.PANTS_C);
     if (bone === B.head) {
-      if (ax > 0.028 && ax < 0.075 && cy > 0.04 && cy < 0.085 && cz > 0.085) m = M.DARK;          // the eyes
-      else if (cy > 0.085 || (cz < -0.025 && cy > -0.03)) m = M.HAIR;                              // hair
+      if (cy > 0.085 || (cz < -0.025 && cy > -0.03)) m = M.HAIR;                              // hair
       else m = M.SKIN;
     } else if (bone === B.armL || bone === B.armR) m = M.SHIRT;                                      // sleeve
     else if (bone === B.foreL || bone === B.foreR) m = ax > 0.66 ? M.SKIN : (ax > 0.5 ? M.FOREARM : M.SHIRT);
@@ -116,6 +123,12 @@ dude.build = function(gltf) {
   geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sWt, 4));
   geo.computeBoundingSphere();
   dude.geo = geo; dude.src = { S, minY };
+  const eyeMat = (c, o) => new THREE.MeshBasicMaterial({ color: c, polygonOffset: true, polygonOffsetFactor: -o, polygonOffsetUnits: -o });
+  dude.eye = {
+    outlineGeo: new THREE.CircleGeometry(FACE.EYE_R + FACE.OUTLINE, 20), whiteGeo: new THREE.CircleGeometry(FACE.EYE_R, 20),
+    pupilGeo: new THREE.CircleGeometry(FACE.PUPIL, 14), browGeo: new THREE.BoxGeometry(0.056, 0.012, 0.01),
+    outlineMat: eyeMat(0x111111, 1), whiteMat: eyeMat(0xffffff, 2), pupilMat: eyeMat(0x050505, 3)
+  };
   dude.ready = true;
 };
 
@@ -146,6 +159,21 @@ dude.make = function(look) {
   bodyG.add(mesh); mesh.add(bones[0]);
   holder.updateMatrixWorld(true);
   mesh.bind(new THREE.Skeleton(bones));
+
+  // cartoon eyes on the face, hung on the head bone: white disc + black outline + pupil, thick eyebrows
+  const E = dude.eye, hp = BONES[B.head][2];
+  [-1, 1].forEach(sd => {
+    const eye = new THREE.Group();
+    eye.position.set(sd * FACE.EYE_X - hp[0], FACE.EYE_Y - hp[1], FACE.Z + 0.0015 - hp[2]);
+    const o = new THREE.Mesh(E.outlineGeo, E.outlineMat), w = new THREE.Mesh(E.whiteGeo, E.whiteMat), p = new THREE.Mesh(E.pupilGeo, E.pupilMat);
+    w.position.z = 0.0004; p.position.set(-sd * 0.003, -0.001, 0.0008);
+    eye.add(o, w, p); eye.rotation.y = sd * 0.06;
+    bones[B.head].add(eye);
+    const brow = new THREE.Mesh(E.browGeo, mats[M.DARK]);
+    brow.position.set(sd * FACE.EYE_X - hp[0], FACE.BROW_Y - hp[1], FACE.Z + 0.002 - hp[2]);
+    brow.rotation.z = -sd * 0.14;                                  // inner ends a little lower: a serious look
+    bones[B.head].add(brow);
+  });
 
   // the accessories (hats, glasses, backpacks...) are in model units, so hang them on the chest bone
   // at the model origin (they then twist and bob together with the body)
