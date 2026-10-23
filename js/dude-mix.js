@@ -46,8 +46,18 @@ dude.build = function(gltf) {
   gltf.scene.traverse(o => { if (o.isMesh) meshes.push(o); });
   if (!meshes.length) throw new Error('no mesh in ' + MIX.FILE);
   const body = meshes.reduce((a, b) => (b.geometry.attributes.position.count > a.geometry.attributes.position.count ? b : a));
-  const geo = body.geometry.toNonIndexed();
-  const P = geo.attributes.position, N = geo.attributes.normal;
+  // NOTE: do NOT use geometry.toNonIndexed() here. This glb stores its vertex data interleaved
+  // (stride 68) and three.js r128's toNonIndexed() copies the raw interleaved array, which scrambles
+  // every vertex into spiky shards. Read through the accessors (getX/getY/...) instead.
+  const src0 = body.geometry, sP = src0.attributes.position, sN = src0.attributes.normal, sIdx = src0.index;
+  const vcount = sIdx ? sIdx.count : sP.count;
+  const pArr = new Float32Array(vcount * 3), nArr = new Float32Array(vcount * 3);
+  for (let i = 0; i < vcount; i++) {
+    const v = sIdx ? sIdx.getX(i) : i;
+    pArr[i * 3] = sP.getX(v); pArr[i * 3 + 1] = sP.getY(v); pArr[i * 3 + 2] = sP.getZ(v);
+    if (sN) { nArr[i * 3] = sN.getX(v); nArr[i * 3 + 1] = sN.getY(v); nArr[i * 3 + 2] = sN.getZ(v); }
+  }
+  const P = new THREE.BufferAttribute(pArr, 3), N = sN ? new THREE.BufferAttribute(nArr, 3) : null;
 
   let minY = 1e9, maxY = -1e9;
   for (let i = 0; i < P.count; i++) { const y = P.getY(i); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
