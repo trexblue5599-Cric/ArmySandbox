@@ -34,6 +34,20 @@ world.initProps = function() {
   P('Billboard', 9, 70, 170, 0);
   P('Billboard', 9, 124, 168, Math.PI / 2);
 
+  // ---------- PLACE: GLB TREES (files live beside index.html) ----------
+  // These exact filenames are supplied by the user. If a file is absent, procedural trees remain.
+  const treeModels = ['Tree_3', 'TreeRound_2', 'TreeDry_2'];
+  // Reduced by 60% from the previous version (240 -> 96 GLB trees).
+  for (let i = 0; i < 96; i++) {
+    const x = (world.rnd() - 0.5) * 1120;
+    const z = (world.rnd() - 0.5) * 1120;
+    if (!world.freeLand || !world.freeLand(x, z)) continue;
+    // Leave wide gaps and keep the main urban blocks clear.
+    if (Math.abs(x) < 145 && Math.abs(z) < 165) continue;
+    if (world.riverDist && world.riverDist(x, z) < 14) continue;
+    P(treeModels[i % treeModels.length], 5.5 + world.rnd() * 2.2, x, z, world.rnd() * Math.PI * 2, false);
+  }
+
   // ---------- PLACE: the outside of town ----------
   // farm fences along the north edge of the south-west fields
   LINE('Fence', 1.1, -124, 86.5, -6, 86.5, false);
@@ -73,7 +87,8 @@ world.initProps = function() {
   const done = () => { if (--left === 0) placeAll(); };
 
   names.forEach(name => {
-    loader.load('props/' + name + '.glb', gltf => {
+    const isRootAsset = ['Tree_3', 'TreeRound_2', 'TreeDry_2'].includes(name);
+    loader.load((isRootAsset ? '' : 'props/') + name + '.glb', gltf => {
       try {
         const root = gltf.scene;
         root.updateMatrixWorld(true);

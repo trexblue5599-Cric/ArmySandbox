@@ -8,7 +8,32 @@ world.initSky = function() {
   const skyG = skyC.getContext('2d');
   const skyTex = new THREE.CanvasTexture(skyC);
   world.scene.background = skyTex;
+
   world.scene.fog = new THREE.Fog(0xdbe9f4, 110, 250);
+
+  // Sparse, static high-altitude clouds with very large gaps between groups.
+  // They are visual-only and do not move or affect gameplay.
+  world.clouds = new THREE.Group();
+  const cloudMat = new THREE.MeshLambertMaterial({ color: 0xf5f8fc, transparent: true, opacity: 0.88, depthWrite: false });
+  const cloudRnd = () => rnd();
+  for (let i = 0; i < 15; i++) {
+    const a = cloudRnd() * Math.PI * 2;
+    const radius = 240 + cloudRnd() * 260;
+    const cx = Math.cos(a) * radius, cz = Math.sin(a) * radius;
+    const cluster = new THREE.Group();
+    const puffCount = 3 + Math.floor(cloudRnd() * 4);
+    for (let j = 0; j < puffCount; j++) {
+      const sx = 8 + cloudRnd() * 11, sy = 2.5 + cloudRnd() * 2.5, sz = 5 + cloudRnd() * 7;
+      const puff = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 7), cloudMat);
+      puff.scale.set(sx, sy, sz);
+      puff.position.set((cloudRnd() - 0.5) * 22, cloudRnd() * 3, (cloudRnd() - 0.5) * 12);
+      puff.castShadow = false; puff.receiveShadow = false;
+      cluster.add(puff);
+    }
+    cluster.position.set(cx, 72 + cloudRnd() * 18, cz);
+    world.clouds.add(cluster);
+  }
+  world.scene.add(world.clouds);
 
 
   const hemi = new THREE.HemisphereLight(0xbfd9ff, 0x7a776c, 0.75);
