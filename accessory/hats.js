@@ -47,26 +47,6 @@
       return g;
     } });
 
-  ACC.add('hat', 'helmet', { name: 'Army helmet', colors: [0x4a5d23, 0x8a7a54, 0x2b2b2b],
-    build(c) {
-      const g = new T.Group();
-      g.add(dome(0.13, c, 0.04, 1.0, 1.03));
-      cyl(0.137, 0.142, 0.02, c, 0.037, g);
-      box(0.008, 0.1, 0.012, 0x222222, 0.104, -0.01, 0.02, g);
-      box(0.008, 0.1, 0.012, 0x222222, -0.104, -0.01, 0.02, g);
-      box(0.1, 0.02, 0.01, 0x2d3a14, 0, 0.1, 0.128, g);
-      return g;
-    } });
-
-  ACC.add('hat', 'hardhat', { name: 'Hard hat', colors: [0xfdd835, 0xffffff, 0xff7043, 0x1e88e5],
-    build(c) {
-      const g = new T.Group();
-      g.add(dome(0.125, c, 0.04, 1.0, 1.03));
-      box(0.03, 0.016, 0.2, c, 0, 0.168, 0, g);
-      box(0.2, 0.012, 0.08, c, 0, 0.045, 0.13, g);
-      return g;
-    } });
-
   ACC.add('hat', 'beret', { name: 'Beret', colors: [0xb71c1c, 0x212121, 0x2e7d32, 0x283593],
     build(c) {
       const g = new T.Group();

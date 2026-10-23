@@ -40,7 +40,7 @@ ACC.fix = function(look) {
   return L;
 };
 
-ACC.defaultLook = () => ({ outfit: 'army', c1: 0, c2: 0, hat: 'helmet', hc: 0, glasses: 'none', back: 'none', bc: 0, vest: 'tactical', face: 'none', fc: 0, skin: 2, hair: 0 });
+ACC.defaultLook = () => ({ outfit: 'casual', c1: 0, c2: 0, hat: 'cap', hc: 0, glasses: 'none', back: 'none', bc: 0, vest: 'none', face: 'none', fc: 0, skin: 2, hair: 0 });
 
 // a random person (used for every pedestrian). rnd = a function returning 0..1
 ACC.randomLook = function(rnd) {

@@ -50,16 +50,6 @@
       return g;
     } });
 
-  ACC.add('back', 'ruck', { name: 'Army rucksack', colors: [0x4a5d23, 0x8a7a54, 0x2b2b2b],
-    build(c) {
-      const g = new T.Group();
-      box(0.27, 0.38, 0.15, c, 0, -0.42, -0.22, g);
-      box(0.25, 0.06, 0.16, c, 0, -0.2, -0.22, g);
-      const roll = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 0.28, 10), ACC.mat(0x3b3b3b));
-      roll.rotation.z = PI / 2; roll.position.set(0, -0.66, -0.24); roll.castShadow = true; g.add(roll);
-      return g;
-    } });
-
   ACC.add('back', 'cape', { name: 'Cape', colors: [0xc62828, 0x1565c0, 0x6a1b9a, 0x212121],
     build(c) {
       const g = new T.Group();
@@ -71,24 +61,6 @@
   // ---------- VEST ----------
   ACC.add('vest', 'none', { name: 'No vest' });
 
-  ACC.add('vest', 'tactical', { name: 'Tactical vest', colors: [0x3b4430, 0x2b2b2b, 0x6b5b3a],
-    build(c) {
-      const g = new T.Group();
-      box(0.35, 0.3, 0.3, c, 0, -0.36, -0.02, g);
-      [-0.09, 0, 0.09].forEach(x => box(0.07, 0.075, 0.04, 0x1f2418, x, -0.43, 0.145, g));
-      return g;
-    } });
-
-  ACC.add('vest', 'hivis', { name: 'Hi-vis vest', colors: [0xff6f00, 0xc6ff00],
-    build(c) {
-      const g = new T.Group();
-      box(0.35, 0.3, 0.3, c, 0, -0.36, -0.02, g);
-      box(0.352, 0.03, 0.302, 0xe0e0e0, 0, -0.32, -0.02, g);
-      box(0.352, 0.03, 0.302, 0xe0e0e0, 0, -0.44, -0.02, g);
-      return g;
-    } });
-
-  // ---------- pixel "deal with it" shades (like the Dude Theft Wars ones) ----------
   ACC.add('glasses', 'pixel', { name: 'Pixel shades',
     build() {
       const g = new T.Group();
