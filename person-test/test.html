@@ -26,7 +26,8 @@
   </div>
 
   <script>
-    window.showProblem = t => { document.getElementById('info').textContent = t; };
+    window.problemShown = false;
+    window.showProblem = t => { window.problemShown = true; document.getElementById('info').textContent = t; };
     window.onerror = (msg, src, line) => { showProblem('Error: ' + msg + ' (line ' + line + ')'); };
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onerror="showProblem('Could not load three.js from the internet')"></script>
@@ -62,11 +63,13 @@
 
     function show() {
       info.textContent = 'outfit: ' + look.outfit + '   hat: ' + look.hat + '   glasses: ' + look.glasses +
-        '   face: ' + look.face + '   back: ' + look.back + '   skin: ' + look.skin;
+        '   face: ' + look.face + '   back: ' + look.back + '   skin: ' + look.skin +
+        (person && person.debug ? '\n' + person.debug() : '');
     }
+    let lastDebug = 0;
     function redress() { person.dress(look); show(); }
 
-    if (typeof dude === 'undefined') showProblem('dude-mix.js did not run. Check js/dude-mix.js is in the js folder.');
+    if (typeof dude === 'undefined') { if (!window.problemShown) showProblem('dude-mix.js did not run. Check js/dude-mix.js is in the js folder.'); }
     else dude.load(ready => {
       if (!ready) { info.textContent = 'dtwmp.glb did not load. Check the file is next to test.html.'; return; }
       look = ACC.randomLook(rnd);
@@ -100,6 +103,7 @@
     function frame(now) {
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
       if (person) person.animate(dt, walkOn ? speeds[speedIdx] : 0);
+      if (person && now - lastDebug > 500) { lastDebug = now; show(); }
       renderer.render(scene, cam);
       requestAnimationFrame(frame);
     }
