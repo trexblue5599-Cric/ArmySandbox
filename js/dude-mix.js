@@ -101,8 +101,7 @@ dude.build = function(gltf) {
     let m;
     const legPants = () => (cy >= -1.02 ? M.PANTS_A : cy >= -1.18 ? M.PANTS_B : M.PANTS_C);
     if (bone === B.head) {
-      if (cy > 0.085 || (cz < -0.025 && cy > -0.03)) m = M.HAIR;                              // hair
-      else m = M.SKIN;
+      m = M.SKIN;     // everyone is bald for now (hair will come back as a wardrobe accessory)
     } else if (bone === B.armL || bone === B.armR) m = M.SHIRT;                                      // sleeve
     else if (bone === B.foreL || bone === B.foreR) m = ax > 0.66 ? M.SKIN : (ax > 0.5 ? M.FOREARM : M.SHIRT);
     else if (bone === B.thighL || bone === B.thighR) m = legPants();
