@@ -42,7 +42,7 @@ const N_MATS = 9;
 
 const dude = { ready: false };
 // the face (model units): a flat panel facing +z. Cartoon eyes: white disc, black outline, small pupil, thick brows.
-const FACE = { Z: 0.106, EYE_X: 0.042, EYE_Y: 0.05, EYE_R: 0.025, OUTLINE: 0.0045, PUPIL: 0.0095, BROW_Y: 0.089 };
+const DUDE_FACE = { Z: 0.106, EYE_X: 0.042, EYE_Y: 0.05, EYE_R: 0.025, OUTLINE: 0.0045, PUPIL: 0.0095, BROW_Y: 0.089 };
 
 // ---------------------------------------------------------------- one-time setup
 dude.load = function(done) {
@@ -84,7 +84,7 @@ dude.build = function(gltf) {
   for (let i = 0; i < n; i++) {
     if (main[i] !== B.head) continue;
     const x = Math.abs(pos[i * 3]), y = pos[i * 3 + 1], z = pos[i * 3 + 2];
-    if (x > 0.012 && x < 0.072 && y > 0.044 && y < 0.082 && z > 0.095) pos[i * 3 + 2] = FACE.Z;
+    if (x > 0.012 && x < 0.072 && y > 0.044 && y < 0.082 && z > 0.095) pos[i * 3 + 2] = DUDE_FACE.Z;
   }
 
   // sort every triangle into a material region
@@ -125,8 +125,8 @@ dude.build = function(gltf) {
   dude.geo = geo; dude.src = { S, minY };
   const eyeMat = (c, o) => new THREE.MeshBasicMaterial({ color: c, polygonOffset: true, polygonOffsetFactor: -o, polygonOffsetUnits: -o });
   dude.eye = {
-    outlineGeo: new THREE.CircleGeometry(FACE.EYE_R + FACE.OUTLINE, 20), whiteGeo: new THREE.CircleGeometry(FACE.EYE_R, 20),
-    pupilGeo: new THREE.CircleGeometry(FACE.PUPIL, 14), browGeo: new THREE.BoxGeometry(0.056, 0.012, 0.01),
+    outlineGeo: new THREE.CircleGeometry(DUDE_FACE.EYE_R + DUDE_FACE.OUTLINE, 20), whiteGeo: new THREE.CircleGeometry(DUDE_FACE.EYE_R, 20),
+    pupilGeo: new THREE.CircleGeometry(DUDE_FACE.PUPIL, 14), browGeo: new THREE.BoxGeometry(0.056, 0.012, 0.01),
     outlineMat: eyeMat(0x111111, 1), whiteMat: eyeMat(0xffffff, 2), pupilMat: eyeMat(0x050505, 3)
   };
   dude.ready = true;
@@ -164,13 +164,13 @@ dude.make = function(look) {
   const E = dude.eye, hp = BONES[B.head][2];
   [-1, 1].forEach(sd => {
     const eye = new THREE.Group();
-    eye.position.set(sd * FACE.EYE_X - hp[0], FACE.EYE_Y - hp[1], FACE.Z + 0.0015 - hp[2]);
+    eye.position.set(sd * DUDE_FACE.EYE_X - hp[0], DUDE_FACE.EYE_Y - hp[1], DUDE_FACE.Z + 0.0015 - hp[2]);
     const o = new THREE.Mesh(E.outlineGeo, E.outlineMat), w = new THREE.Mesh(E.whiteGeo, E.whiteMat), p = new THREE.Mesh(E.pupilGeo, E.pupilMat);
     w.position.z = 0.0004; p.position.set(-sd * 0.003, -0.001, 0.0008);
     eye.add(o, w, p); eye.rotation.y = sd * 0.06;
     bones[B.head].add(eye);
     const brow = new THREE.Mesh(E.browGeo, mats[M.DARK]);
-    brow.position.set(sd * FACE.EYE_X - hp[0], FACE.BROW_Y - hp[1], FACE.Z + 0.002 - hp[2]);
+    brow.position.set(sd * DUDE_FACE.EYE_X - hp[0], DUDE_FACE.BROW_Y - hp[1], DUDE_FACE.Z + 0.002 - hp[2]);
     brow.rotation.z = -sd * 0.14;                                  // inner ends a little lower: a serious look
     bones[B.head].add(brow);
   });
