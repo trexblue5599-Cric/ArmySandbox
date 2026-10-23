@@ -30,6 +30,7 @@ dude.build = function(gltf) {
   const H = box.max.y - box.min.y, S = MIX.HEIGHT / H;
   const meshes = []; root.traverse(o => { if (o.isSkinnedMesh) meshes.push(o); });
   if (!meshes.length) throw new Error('no skinned meshes in dtwmp.glb');
+  let TOP = -1e9; meshes.forEach(m => { const p = m.geometry.attributes.position; for (let i = 0; i < p.count; i++) TOP = Math.max(TOP, p.getY(i)); });
 
   // which part of the body each vertex is: 0 skin, 1 shirt, 2 trousers, 3 shoes
   const regions = meshes.map(m => {
@@ -41,7 +42,7 @@ dude.build = function(gltf) {
       const y = pos.getY(i);
       if (isShoe) r[i] = 3;
       else if (isLeg) r[i] = 2;
-      else r[i] = y > top - 0.9 ? 0 : 1;      // the head (top of the body) is skin, the rest is shirt
+      else { const x = Math.abs(pos.getX(i)); r[i] = ((y > top - 1.0 && x < 0.75) || x > 1.5) ? 0 : 1; }   // head + neck and hands/forearms are skin, the rest is shirt
     }
     return r;
   });
@@ -50,7 +51,10 @@ dude.build = function(gltf) {
   const headVerts = [];
   meshes.forEach((m, k) => {
     const p = m.geometry.attributes.position;
-    for (let i = 0; i < p.count; i++) if (regions[k][i] === 0) headVerts.push([p.getX(i), p.getY(i), p.getZ(i)]);
+    for (let i = 0; i < p.count; i++) {
+      const x = Math.abs(p.getX(i)), y = p.getY(i);
+      if (regions[k][i] === 0 && y > TOP - 1.0 && x < 0.75) headVerts.push([p.getX(i), y, p.getZ(i)]);
+    }
   });
   let x0 = 1e9, x1 = -1e9, y1 = -1e9, zMax = -1e9, yc = 0;
   headVerts.forEach(v => { x0 = Math.min(x0, v[0]); x1 = Math.max(x1, v[0]); y1 = Math.max(y1, v[1]); zMax = Math.max(zMax, v[2]); yc += v[1]; });
@@ -73,10 +77,8 @@ dude.make = function(look) {
   obj.position.y = -src.minY * src.S;
 
   const d = { group: holder, look, skinMat: null, bodyMeshes: [], t: 0, mv: 0, phase: 0, acc: null };
-  d.mixer = new THREE.AnimationMixer(obj);
-  d.action = d.mixer.clipAction(src.clip);
-  d.action.play();
-  d.action.time = Math.random() * src.clip.duration;        // everyone starts at a different point of the walk
+  d.phase = Math.random() * 6.28;                          // everyone starts at a different point of the walk
+  dude.recordPose(obj, d);
 
   // the meshes of THIS person: each gets its own colour data
   const bodyMeshes = [];
@@ -100,7 +102,7 @@ dude.make = function(look) {
   dude.eyeGeo = dude.eyeGeo || new THREE.CircleGeometry(0.06, 12);
   dude.pupilGeo = dude.pupilGeo || new THREE.CircleGeometry(0.028, 10);
   [-1, 1].forEach(s => {
-    const ex = s * src.eyeAt.x - bone.x, ey = src.eyeAt.y - bone.y, ez = src.eyeAt.z - bone.z + 0.01;
+    const ex = s * src.eyeAt.x - bone.x, ey = src.eyeAt.y - bone.y, ez = src.eyeAt.z - bone.z + 0.03;
     const w = new THREE.Mesh(dude.eyeGeo, eyeWhite); w.position.set(ex, ey, ez); head.add(w);
     const p = new THREE.Mesh(dude.pupilGeo, pupilMat); p.position.set(ex, ey, ez + 0.002); head.add(p);
   });
@@ -118,11 +120,42 @@ dude.make = function(look) {
   return d;
 };
 
-// the walk: faster when you move faster, almost still when you stand
+// remember each bone's rest pose, and which way its world X / Y / Z axes point inside the bone
+dude.recordPose = function(obj, d) {
+  obj.updateMatrixWorld(true);
+  const want = ['Hips_01', 'LeftArm_09', 'RightArm_020', 'LeftUpLeg_031', 'RightUpLeg_036', 'LeftLeg_032', 'RightLeg_037'];
+  const AX = { X: new THREE.Vector3(1, 0, 0), Y: new THREE.Vector3(0, 1, 0), Z: new THREE.Vector3(0, 0, 1) };
+  d.bones = {};
+  want.forEach(n => {
+    const b = obj.getObjectByName('mixamorig:' + n); if (!b) return;
+    const wq = new THREE.Quaternion(); b.getWorldQuaternion(wq);
+    const inv = wq.clone().invert();
+    const local = k => AX[k].clone().applyQuaternion(inv);
+    d.bones[n] = { b, q: b.quaternion.clone(), p: b.position.clone(), X: local('X'), Y: local('Y'), Z: local('Z') };
+  });
+};
+
+// the walk, made in code: arms hang and swing, legs swing and the knees bend. Faster when you move faster.
 dude.animate = function(d, dt, speed) {
-  const moving = Math.min(1, speed / 1.5);
-  d.action.timeScale = 0.15 + Math.min(1.8, speed / MIX.WALK_SPEED) * moving;
-  d.mixer.update(dt);
+  if (!d.bones) return;
+  const k = Math.min(1, speed / 1.5);                     // 0 standing, 1 walking
+  d.mv += (k - d.mv) * Math.min(1, 8 * dt);
+  d.phase += dt * (3 + 2.4 * Math.min(1.4, speed / 2.5));
+  const s = Math.sin(d.phase), mv = d.mv, B = d.bones;
+  const pose = (n, moves) => {                            // moves = [[axis, angle], ...] on top of the rest pose
+    const o = B[n]; if (!o) return;
+    const q = new THREE.Quaternion();
+    moves.forEach(m => q.multiply(new THREE.Quaternion().setFromAxisAngle(o[m[0]], m[1])));
+    o.b.quaternion.copy(o.q).multiply(q);
+  };
+  pose('LeftArm_09',     [['Z', -1.2], ['Y', s * 0.4 * mv]]);   // hang down, swing forward/back
+  pose('RightArm_020',   [['Z',  1.2], ['Y', -s * 0.4 * mv]]);
+  pose('LeftUpLeg_031',  [['X', -s * 0.5 * mv]]);
+  pose('RightUpLeg_036', [['X',  s * 0.5 * mv]]);
+  pose('LeftLeg_032',    [['X', Math.max(0, s) * 0.6 * mv]]);  // knee bends on the way back
+  pose('RightLeg_037',   [['X', Math.max(0, -s) * 0.6 * mv]]);
+  const hips = B['Hips_01'];
+  if (hips) { hips.b.position.copy(hips.p); hips.b.position.y += Math.abs(s) * 0.05 * mv; }
 };
 
 // the clothes and skin colours for this person
