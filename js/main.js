@@ -9,6 +9,7 @@ function startGame() {
   world.initMap();          // farmland, lake, harbour, airport, roads outside the city
   world.initOutskirts();    // forests and mountains
   world.initFill();         // trees, bushes and paved slabs on the empty land
+  world.initHarbour();      // harbour zone: pier, lighthouse, cranes, containers, rental hut
   world.initBatches();
   world.initTraffic();
   vehicleDrive.init();
