@@ -34,15 +34,20 @@ dude.build = function(gltf) {
 
   // which part of the body each vertex is: 0 skin, 1 shirt, 2 trousers, 3 shoes
   const regions = meshes.map(m => {
+    m.geometry = m.geometry.toNonIndexed();          // every triangle gets its own corners, so each triangle has one clean colour
     const pos = m.geometry.attributes.position, n = pos.count, r = new Uint8Array(n);
-    let top = -1e9, lo = 1e9, hi = -1e9; const headY = 0;
-    for (let i = 0; i < n; i++) { const y = pos.getY(i); top = Math.max(top, y); lo = Math.min(lo, y); hi = Math.max(hi, y); }
+    let top = -1e9, hi = -1e9;
+    for (let i = 0; i < n; i++) { const y = pos.getY(i); top = Math.max(top, y); hi = Math.max(hi, y); }
     const isShoe = hi < 0.3, isLeg = !isShoe && hi < 2.6;
-    for (let i = 0; i < n; i++) {
-      const y = pos.getY(i);
-      if (isShoe) r[i] = 3;
-      else if (isLeg) r[i] = 2;
-      else { const x = Math.abs(pos.getX(i)); r[i] = ((y > top - 1.0 && x < 0.75) || x > 1.5) ? 0 : 1; }   // head + neck and hands/forearms are skin, the rest is shirt
+    for (let t = 0; t + 2 < n; t += 3) {
+      // the middle of the triangle decides its colour
+      const cx = (pos.getX(t) + pos.getX(t + 1) + pos.getX(t + 2)) / 3;
+      const cy = (pos.getY(t) + pos.getY(t + 1) + pos.getY(t + 2)) / 3;
+      let c;
+      if (isShoe) c = 3;
+      else if (isLeg) c = 2;
+      else { const ax = Math.abs(cx); c = ((cy > top - 1.0 && ax < 0.75) || ax > 1.5) ? 0 : 1; }   // head + neck and hands/forearms are skin, the rest is shirt
+      r[t] = r[t + 1] = r[t + 2] = c;
     }
     return r;
   });
@@ -114,6 +119,11 @@ dude.make = function(look) {
   frame.scale.setScalar((DUDE_HEIGHT / DUDE_RAW_H) / src.S);
   d.frame = frame;
 
+  d.debug = () => {
+    const hp2 = new THREE.Vector3(); frame.getWorldPosition(hp2);
+    return 'bones ' + Object.keys(d.bones || {}).length + '/7  accessory pieces ' + (d.acc ? d.acc.children.length : 0) +
+      '  head at y ' + hp2.y.toFixed(2);
+  };
   d.dress = function(l) { dude.dress(d, l); };
   d.animate = function(dt, speed) { dude.animate(d, dt, speed); };
   d.dress(look);
