@@ -35,12 +35,12 @@ ACC.get = (slot, id) => (ACC.slots[slot] || {})[id];
 // make sure a look only uses things that exist (old saved looks, typos...)
 ACC.fix = function(look) {
   const L = Object.assign({}, ACC.defaultLook(), look || {});
-  ['outfit', 'hat', 'glasses', 'back', 'vest', 'face', 'hairstyle'].forEach(s => { if (!ACC.get(s, L[s])) L[s] = s === 'outfit' ? ACC.ids('outfit')[0] : 'none'; });
-  ['c1', 'c2', 'hc', 'bc', 'fc', 'skin', 'hair'].forEach(k => { L[k] = Math.abs(Math.floor(+L[k] || 0)); });
+  ['outfit', 'hat', 'glasses', 'back', 'vest', 'face', 'hairstyle', 'mouth'].forEach(s => { if (!ACC.get(s, L[s])) L[s] = s === 'outfit' ? ACC.ids('outfit')[0] : 'none'; });
+  ['c1', 'c2', 'hc', 'bc', 'fc', 'mc', 'skin', 'hair'].forEach(k => { L[k] = Math.abs(Math.floor(+L[k] || 0)); });
   return L;
 };
 
-ACC.defaultLook = () => ({ outfit: 'casual', c1: 0, c2: 0, hat: 'cap', hc: 0, glasses: 'none', back: 'none', bc: 0, vest: 'none', face: 'none', fc: 0, skin: 2, hairstyle: 'short', hair: 0 });
+ACC.defaultLook = () => ({ outfit: 'casual', c1: 0, c2: 0, hat: 'cap', hc: 0, glasses: 'none', back: 'none', bc: 0, vest: 'none', face: 'none', fc: 0, skin: 2, hairstyle: 'short', hair: 0, mouth: 'none', mc: 0 });
 
 // a random person (used for every pedestrian). rnd = a function returning 0..1
 ACC.randomLook = function(rnd) {
@@ -55,7 +55,8 @@ ACC.randomLook = function(rnd) {
     vest: rnd() < 0.07 ? pick(non('vest')) : 'none',
     face: rnd() < 0.3 ? pick(non('face')) : 'none', fc: Math.floor(rnd() * 50),
     hairstyle: rnd() < 0.1 ? 'none' : pick(non('hairstyle')),
-    skin: Math.floor(rnd() * ACC.SKINS.length), hair: Math.floor(rnd() * 50)
+    mouth: rnd() < 0.3 && non('mouth').length ? pick(non('mouth')) : 'none', mc: 0,
+    skin: Math.floor(rnd() * ACC.SKINS.length), hair: Math.floor(rnd() * 6)    // pedestrians get natural hair colours only
   });
 };
 
@@ -83,6 +84,7 @@ ACC.attach = function(parent, look) {
   pick('hat', look.hat, look.hc, g);
   pick('glasses', look.glasses, 0, g);
   pick('face', look.face, look.fc, g);
+  pick('mouth', look.mouth, look.mc, g);
   // torso pieces: back, vest, outfit extras (tie, hood, skirt...)
   pick('back', look.back, look.bc, wear);
   pick('vest', look.vest, 0, wear);
