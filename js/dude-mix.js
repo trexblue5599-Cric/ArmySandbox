@@ -102,7 +102,7 @@ dude.make = function(look) {
   dude.eyeGeo = dude.eyeGeo || new THREE.CircleGeometry(0.06, 12);
   dude.pupilGeo = dude.pupilGeo || new THREE.CircleGeometry(0.028, 10);
   [-1, 1].forEach(s => {
-    const ex = s * src.eyeAt.x - bone.x, ey = src.eyeAt.y - bone.y, ez = src.eyeAt.z - bone.z + 0.03;
+    const ex = s * src.eyeAt.x - bone.x, ey = src.eyeAt.y - bone.y, ez = src.eyeAt.z - bone.z + 0.08;
     const w = new THREE.Mesh(dude.eyeGeo, eyeWhite); w.position.set(ex, ey, ez); head.add(w);
     const p = new THREE.Mesh(dude.pupilGeo, pupilMat); p.position.set(ex, ey, ez + 0.002); head.add(p);
   });
@@ -117,6 +117,7 @@ dude.make = function(look) {
   d.dress = function(l) { dude.dress(d, l); };
   d.animate = function(dt, speed) { dude.animate(d, dt, speed); };
   d.dress(look);
+  dude.animate(d, 0, 0);                       // arms down straight away (even for people who are far off)
   return d;
 };
 
