@@ -1,26 +1,44 @@
-// js/dude-mix.js  -  the 'Dude remastered' person (Dude_remastered.glb).
-// The model has no skeleton, so the body is cut into parts from its shape (head, torso, arms,
-// thighs, shins, shoes). Arms and legs turn at the shoulders, hips and knees to walk.
+// js/dude-mix.js  -  the 'Dude remastered' person (Dude_remastered.glb), now properly SKINNED.
+// The glb stores a weight for every vertex on 34 joints (but no skeleton), so we build our own small
+// skeleton (11 bones) and merge those weights onto it. Result: ONE smooth mesh from the real model,
+// no separate limb pieces and no ball joints. Elbows, knees and shoulders bend the real surface.
 // Same interface as before: dude.load(done), dude.make(look) -> .group .dress(look) .animate(dt, speed) .debug()
 const MIX = {
   FILE: 'Dude_remastered.glb',
   HEIGHT: 1.9,             // every person is this many metres tall
-  WALK_SPEED: 3.5          // the speed (m/s) for a normal-pace walk
+  ARM_DOWN: 1.3            // radians the T-pose arms are lowered by
 };
 const DUDE_CLOTH = 0;      // no separate cloth layer on this model (used by the wardrobe)
-// the accessories (hats, glasses, face hair, backpacks, vests...) were built for a model that is
-// DUDE_RAW_H units tall and stands DUDE_HEIGHT metres: they are scaled to match this person.
-const DUDE_HEIGHT = 1.9, DUDE_RAW_H = 2.632;
-// where the body is cut (model units; feet at the bottom)
-const SHAPE = {
-  SHOE_Y: -1.55,            // below this is shoe
-  KNEE_Y: -1.22,            // below this is shin, above is thigh
-  HIP_Y: -0.95,             // trousers start here (torso above)
-  NECK_Y: -0.22,            // head + neck above this
-  ARM_X: 0.22,              // arms are further out than this (sideways)
-  HAND_X: 0.5,              // hands + forearms (skin) are further out than this
-  SHOULDER: [0.2, -0.3, 0], HIP: [0.09, -0.95, 0], KNEE: [0.1, -1.22, 0]
-};
+const DUDE_HEIGHT = 1.9;   // (kept for the wardrobe / other files)
+// NOTE: the hats, glasses, backpacks... are already built in THIS model's own units (head top y=0.155,
+// face points to +z), so they are attached with no extra scaling.
+
+// ---- skeleton: [name, parent, pivot in model units]
+const BONES = [
+  ['hips',   -1, [0, -0.82, 0]],
+  ['chest',   0, [0, -0.45, 0]],
+  ['head',    1, [0, -0.12, 0]],
+  ['armL',    1, [0.17, -0.27, -0.02]],
+  ['foreL',   3, [0.40, -0.285, -0.02]],
+  ['armR',    1, [-0.17, -0.27, -0.02]],
+  ['foreR',   5, [-0.40, -0.285, -0.02]],
+  ['thighL',  0, [0.085, -0.84, 0]],
+  ['shinL',   7, [0.09, -1.19, 0]],
+  ['thighR',  0, [-0.085, -0.84, 0]],
+  ['shinR',   9, [-0.09, -1.19, 0]]
+];
+const B = {}; BONES.forEach((b, i) => { B[b[0]] = i; });
+// which glb joint belongs to which of our bones (joint numbers come from the glb)
+const JOINT_BONE = {};
+[['head', [0, 1]], ['chest', [2, 3, 8, 21]], ['hips', [5, 6]],
+ ['armL', [4]], ['foreL', [9, 10, 11, 12, 17, 18, 19, 20]],
+ ['armR', [22]], ['foreR', [23, 24, 25, 26, 27, 32, 33]],
+ ['thighL', [7]], ['shinL', [14, 15, 16]], ['thighR', [13]], ['shinR', [29, 30, 31]]
+].forEach(e => e[1].forEach(j => { JOINT_BONE[j] = B[e[0]]; }));
+
+// material slots (every person gets their own set of colours)
+const M = { SKIN: 0, SHIRT: 1, PANTS_A: 2, PANTS_B: 3, PANTS_C: 4, SHOE: 5, HAIR: 6, DARK: 7, FOREARM: 8 };
+const N_MATS = 9;
 
 const dude = { ready: false };
 
@@ -32,193 +50,152 @@ dude.load = function(done) {
   }, undefined, err => { console.warn(MIX.FILE + ' not loaded', err); done(false); });
 };
 
-// the mirror of a point on the left side (+x) is on the right side (-x)
-const mirror = p => [-p[0], p[1], p[2]];
-const pivotOf = key => {
-  if (key.indexOf('arm') >= 0) return key[0] === 'L' ? SHAPE.SHOULDER : mirror(SHAPE.SHOULDER);
-  if (key.indexOf('thigh') >= 0) return key[0] === 'L' ? SHAPE.HIP : mirror(SHAPE.HIP);
-  if (key.indexOf('shin') >= 0 || key.indexOf('shoe') >= 0) return key[0] === 'L' ? SHAPE.KNEE : mirror(SHAPE.KNEE);
-  return [0, 0, 0];   // torso and head
-};
-
 dude.build = function(gltf) {
   const meshes = []; gltf.scene.updateMatrixWorld(true);
   gltf.scene.traverse(o => { if (o.isMesh) meshes.push(o); });
   if (!meshes.length) throw new Error('no mesh in ' + MIX.FILE);
   const body = meshes.reduce((a, b) => (b.geometry.attributes.position.count > a.geometry.attributes.position.count ? b : a));
-  // NOTE: do NOT use geometry.toNonIndexed() here. This glb stores its vertex data interleaved
-  // (stride 68) and three.js r128's toNonIndexed() copies the raw interleaved array, which scrambles
-  // every vertex into spiky shards. Read through the accessors (getX/getY/...) instead.
-  const src0 = body.geometry, sP = src0.attributes.position, sN = src0.attributes.normal, sIdx = src0.index;
-  const vcount = sIdx ? sIdx.count : sP.count;
-  const pArr = new Float32Array(vcount * 3), nArr = new Float32Array(vcount * 3);
-  for (let i = 0; i < vcount; i++) {
-    const v = sIdx ? sIdx.getX(i) : i;
-    pArr[i * 3] = sP.getX(v); pArr[i * 3 + 1] = sP.getY(v); pArr[i * 3 + 2] = sP.getZ(v);
-    if (sN) { nArr[i * 3] = sN.getX(v); nArr[i * 3 + 1] = sN.getY(v); nArr[i * 3 + 2] = sN.getZ(v); }
-  }
-  const P = new THREE.BufferAttribute(pArr, 3), N = sN ? new THREE.BufferAttribute(nArr, 3) : null;
-
+  const g = body.geometry;
+  // read through the accessors (the data is interleaved, so never touch .array directly)
+  const aP = g.attributes.position, aN = g.attributes.normal, aJ = g.attributes.skinIndex, aW = g.attributes.skinWeight;
+  const n = aP.count;
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3);
+  const sIdx = new Uint16Array(n * 4), sWt = new Float32Array(n * 4), main = new Uint8Array(n);
   let minY = 1e9, maxY = -1e9;
-  for (let i = 0; i < P.count; i++) { const y = P.getY(i); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
+  for (let i = 0; i < n; i++) {
+    pos[i * 3] = aP.getX(i); pos[i * 3 + 1] = aP.getY(i); pos[i * 3 + 2] = aP.getZ(i);
+    if (aN) { nor[i * 3] = aN.getX(i); nor[i * 3 + 1] = aN.getY(i); nor[i * 3 + 2] = aN.getZ(i); }
+    minY = Math.min(minY, pos[i * 3 + 1]); maxY = Math.max(maxY, pos[i * 3 + 1]);
+    // merge the 34 joint weights onto our 11 bones
+    const w = {};
+    if (aJ && aW) {
+      const js = [aJ.getX(i), aJ.getY(i), aJ.getZ(i), aJ.getW(i)], ws = [aW.getX(i), aW.getY(i), aW.getZ(i), aW.getW(i)];
+      for (let k = 0; k < 4; k++) if (ws[k] > 0) { const b = JOINT_BONE[js[k]] !== undefined ? JOINT_BONE[js[k]] : B.chest; w[b] = (w[b] || 0) + ws[k]; }
+    } else w[B.chest] = 1;
+    const list = Object.keys(w).map(k => [+k, w[k]]).sort((a, b) => b[1] - a[1]).slice(0, 4);
+    const tot = list.reduce((s, e) => s + e[1], 0) || 1;
+    for (let k = 0; k < 4; k++) { sIdx[i * 4 + k] = list[k] ? list[k][0] : 0; sWt[i * 4 + k] = list[k] ? list[k][1] / tot : 0; }
+    main[i] = list[0][0];
+  }
   const S = MIX.HEIGHT / (maxY - minY);
 
-  // the face's front (the flat part between the eyes), used to smooth the eyebrow ridge away
-  let faceZ = -1e9;
-  for (let i = 0; i < P.count; i++) {
-    const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
-    if (y > SHAPE.NECK_Y && Math.abs(x) < 0.08) faceZ = Math.max(faceZ, z);
-  }
-  // eyebrows: the small ridge above the eyes. Pull those points back onto the face.
-  for (let i = 0; i < P.count; i++) {
-    const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
-    if (y > 0.02 && y < 0.11 && Math.abs(x) > 0.03 && Math.abs(x) < 0.14 && z > faceZ - 0.02) P.setZ(i, Math.min(z, faceZ - 0.012));
-  }
-  P.needsUpdate = true;
-
-  // sort every triangle into a part (decided by the middle of the triangle)
-  const lists = {};
-  const put = (k, t) => { (lists[k] = lists[k] || []).push(t, t + 1, t + 2); };
-  for (let t = 0; t + 2 < P.count; t += 3) {
-    const cx = (P.getX(t) + P.getX(t + 1) + P.getX(t + 2)) / 3;
-    const cy = (P.getY(t) + P.getY(t + 1) + P.getY(t + 2)) / 3;
-    const ax = Math.abs(cx), sd = cx >= 0 ? 'L' : 'R';
-    if (cy < SHAPE.SHOE_Y) put(sd + 'shoe', t);
-    else if (cy < SHAPE.HIP_Y && ax < SHAPE.ARM_X) put(sd + (cy < SHAPE.KNEE_Y ? 'shin' : 'thigh'), t);
-    else if (ax >= SHAPE.ARM_X) put(sd + 'arm' + (ax > SHAPE.HAND_X ? 'skin' : 'shirt'), t);
-    else if (cy >= SHAPE.NECK_Y) put('head', t);
-    else put('torso', t);
-  }
-
-  // one shared geometry per part, moved so its pivot is at (0,0,0)
-  dude.geos = {};
-  Object.keys(lists).forEach(k => {
-    const idx = lists[k], n = idx.length, pv = pivotOf(k);
-    const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) {
-      const v = idx[i];
-      pos[i * 3] = P.getX(v) - pv[0]; pos[i * 3 + 1] = P.getY(v) - pv[1]; pos[i * 3 + 2] = P.getZ(v) - pv[2];
-      if (N) { nor[i * 3] = N.getX(v); nor[i * 3 + 1] = N.getY(v); nor[i * 3 + 2] = N.getZ(v); }
+  // sort every triangle into a material region
+  const src = g.index; const nt = (src ? src.count : n) / 3;
+  const buckets = []; for (let m = 0; m < N_MATS; m++) buckets.push([]);
+  for (let t = 0; t < nt; t++) {
+    const v = [0, 1, 2].map(k => src ? src.getX(t * 3 + k) : t * 3 + k);
+    const cx = (pos[v[0] * 3] + pos[v[1] * 3] + pos[v[2] * 3]) / 3;
+    const cy = (pos[v[0] * 3 + 1] + pos[v[1] * 3 + 1] + pos[v[2] * 3 + 1]) / 3;
+    const cz = (pos[v[0] * 3 + 2] + pos[v[1] * 3 + 2] + pos[v[2] * 3 + 2]) / 3;
+    const bs = v.map(i => main[i]);
+    const bone = (bs[0] === bs[1] || bs[0] === bs[2]) ? bs[0] : (bs[1] === bs[2] ? bs[1] : bs[0]);
+    const ax = Math.abs(cx);
+    let m;
+    const legPants = () => (cy >= -1.02 ? M.PANTS_A : cy >= -1.18 ? M.PANTS_B : M.PANTS_C);
+    if (bone === B.head) {
+      if (ax > 0.028 && ax < 0.075 && cy > 0.04 && cy < 0.085 && cz > 0.085) m = M.DARK;          // the eyes
+      else if (cy > 0.085 || (cz < -0.025 && cy > -0.03)) m = M.HAIR;                              // hair
+      else m = M.SKIN;
+    } else if (bone === B.armL || bone === B.armR) m = M.SHIRT;                                      // sleeve
+    else if (bone === B.foreL || bone === B.foreR) m = ax > 0.66 ? M.SKIN : (ax > 0.5 ? M.FOREARM : M.SHIRT);
+    else if (bone === B.thighL || bone === B.thighR) m = legPants();
+    else if (bone === B.shinL || bone === B.shinR) m = cy < -1.5 ? M.SHOE : legPants();
+    else {                                                                                           // torso
+      if (cy > -0.2 && ax < 0.08) m = M.SKIN;                                                       // neck
+      else if (cy < -0.8) m = M.PANTS_A;
+      else m = M.SHIRT;
     }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    if (N) g.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); else g.computeVertexNormals();
-    dude.geos[k] = g;
-  });
-
-  // the head's centre and front: the accessories hang from here, and the eyes go on the face
-  const head = lists.head || [];
-  let hx = 0, hy = 0, hz = 0, n = 0, wx = 0, zFront = -1e9, yMax = -1e9, yMin = 1e9;
-  for (let i = 0; i < head.length; i++) {
-    const v = head[i], x = P.getX(v), y = P.getY(v), z = P.getZ(v);
-    hx += x; hy += y; hz += z; n++;
-    wx = Math.max(wx, Math.abs(x));
-    if (Math.abs(x) < 0.08) zFront = Math.max(zFront, z);
-    yMax = Math.max(yMax, y); yMin = Math.min(yMin, y);
+    buckets[m].push(v[0], v[1], v[2]);
   }
-  const headC = n ? [hx / n, hy / n, hz / n] : [0, -0.05, 0];
-  dude.src = { S, minY, headC, wx: wx || 0.12, eyeY: (yMax + yMin) / 2 + 0.02, zFront: zFront > -1e8 ? zFront : headC[2] + 0.1 };
-  dude.quadGeo = null;      // the small second mesh is the mouth: left out
+  const index = []; const geo = new THREE.BufferGeometry();
+  buckets.forEach((list, m) => { if (list.length) { geo.addGroup(index.length, list.length, m); list.forEach(i => index.push(i)); } });
+  geo.setIndex(index);
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  if (aN) geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); else geo.computeVertexNormals();
+  geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(sIdx, 4));
+  geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sWt, 4));
+  geo.computeBoundingSphere();
+  dude.geo = geo; dude.src = { S, minY };
   dude.ready = true;
 };
 
 // ---------------------------------------------------------------- one person
 dude.make = function(look) {
   const src = dude.src;
-  const holder = new THREE.Group();
-  const obj = new THREE.Group();
-  holder.add(obj);
+  const holder = new THREE.Group(), obj = new THREE.Group(), bodyG = new THREE.Group();
+  holder.add(obj); obj.add(bodyG);
   obj.scale.setScalar(src.S);
   obj.position.y = -src.minY * src.S;                   // feet on the ground
 
-  // the body and the joints (a joint's group sits at its pivot)
-  const bodyG = new THREE.Group(); obj.add(bodyG);
-  const armL = new THREE.Group(), armR = new THREE.Group();
-  armL.position.set(...SHAPE.SHOULDER); armR.position.set(...mirror(SHAPE.SHOULDER));
-  bodyG.add(armL, armR);
-  const thighL = new THREE.Group(), thighR = new THREE.Group();
-  thighL.position.set(...SHAPE.HIP); thighR.position.set(...mirror(SHAPE.HIP));
-  bodyG.add(thighL, thighR);
-  const shinL = new THREE.Group(), shinR = new THREE.Group();
-  const kneeOffL = [SHAPE.KNEE[0] - SHAPE.HIP[0], SHAPE.KNEE[1] - SHAPE.HIP[1], SHAPE.KNEE[2] - SHAPE.HIP[2]];
-  shinL.position.set(...kneeOffL); shinR.position.set(-kneeOffL[0], kneeOffL[1], kneeOffL[2]);
-  thighL.add(shinL); thighR.add(shinR);
-
-  // colours for this person: one material per colour
-  const mats = {
-    shirt: new THREE.MeshLambertMaterial(), pants: new THREE.MeshLambertMaterial(),
-    skin: new THREE.MeshLambertMaterial(), shoe: new THREE.MeshLambertMaterial(), dark: new THREE.MeshLambertMaterial({ color: 0x2a1a14 })
-  };
-  const matOf = k => (k.indexOf('skin') >= 0 || k === 'head') ? mats.skin : k.indexOf('shoe') >= 0 ? mats.shoe :
-    (k.indexOf('thigh') >= 0 || k.indexOf('shin') >= 0) ? mats.pants : mats.shirt;
-  const groupOf = k => {
-    if (k[0] === 'L' && k.indexOf('arm') >= 0) return armL;
-    if (k[0] === 'R' && k.indexOf('arm') >= 0) return armR;
-    if (k[0] === 'L' && k.indexOf('thigh') >= 0) return thighL;
-    if (k[0] === 'R' && k.indexOf('thigh') >= 0) return thighR;
-    if (k[0] === 'L' && (k.indexOf('shin') >= 0 || k.indexOf('shoe') >= 0)) return shinL;
-    if (k[0] === 'R' && (k.indexOf('shin') >= 0 || k.indexOf('shoe') >= 0)) return shinR;
-    return bodyG;
-  };
-  Object.keys(dude.geos).forEach(k => {
-    const m = new THREE.Mesh(dude.geos[k], matOf(k));
-    m.castShadow = true; m.frustumCulled = false;
-    groupOf(k).add(m);
+  // bones (each person has their own, the geometry is shared)
+  const bones = BONES.map((b, i) => {
+    const bone = new THREE.Bone(); bone.name = b[0];
+    const pp = b[1] >= 0 ? BONES[b[1]][2] : [0, 0, 0];
+    bone.position.set(b[2][0] - pp[0], b[2][1] - pp[1], b[2][2] - pp[2]);
+    return bone;
   });
-  if (dude.quadGeo) { const q = new THREE.Mesh(dude.quadGeo, mats.dark); q.frustumCulled = false; bodyG.add(q); }
-  // rounded joints so a bent limb shows no gap
-  const cap = (r, mat, parent) => { const m = new THREE.Mesh(dude.capGeo(r), mat); m.castShadow = true; parent.add(m); };
-  cap(0.09, mats.shirt, armL); cap(0.09, mats.shirt, armR);
-  cap(0.11, mats.pants, thighL); cap(0.11, mats.pants, thighR);
-  cap(0.08, mats.pants, shinL); cap(0.08, mats.pants, shinR);
+  BONES.forEach((b, i) => { if (b[1] >= 0) bones[b[1]].add(bones[i]); });
 
-  // the eyes: a white disc with a black pupil, on the face
-  dude.eyeGeo = dude.eyeGeo || new THREE.CircleGeometry(0.02, 12);
-  dude.pupilGeo = dude.pupilGeo || new THREE.CircleGeometry(0.009, 10);
-  dude.eyeWhiteMat = dude.eyeWhiteMat || new THREE.MeshBasicMaterial({ color: 0xf4f4f4 });
-  dude.pupilMat = dude.pupilMat || new THREE.MeshBasicMaterial({ color: 0x111111 });
-  [-1, 1].forEach(s => {
-    const ex = s * src.wx * 0.45, ey = src.eyeY, ez = src.zFront + 0.004;
-    const w = new THREE.Mesh(dude.eyeGeo, dude.eyeWhiteMat); w.position.set(ex, ey, ez); bodyG.add(w);
-    const p = new THREE.Mesh(dude.pupilGeo, dude.pupilMat); p.position.set(ex, ey, ez + 0.001); bodyG.add(p);
-  });
+  // materials: one set of colours per person
+  const mats = [];
+  for (let i = 0; i < N_MATS; i++) { const m = new THREE.MeshLambertMaterial(); m.skinning = true; mats.push(m); }
+  mats[M.DARK].color.setHex(0x1a1210);
 
-  // the accessories hang from the head centre, at the old model's size
+  const mesh = new THREE.SkinnedMesh(dude.geo, mats);
+  mesh.castShadow = true; mesh.frustumCulled = false;
+  bodyG.add(mesh); mesh.add(bones[0]);
+  holder.updateMatrixWorld(true);
+  mesh.bind(new THREE.Skeleton(bones));
+
+  // the accessories (hats, glasses, backpacks...) are in model units, so hang them on the chest bone
+  // at the model origin (they then twist and bob together with the body)
   const frame = new THREE.Group();
-  frame.position.set(src.headC[0], src.headC[1], src.headC[2]);
-  frame.scale.setScalar((DUDE_HEIGHT / DUDE_RAW_H) / src.S);
-  bodyG.add(frame);
+  frame.position.set(-BONES[B.chest][2][0], -BONES[B.chest][2][1], -BONES[B.chest][2][2]);
+  bones[B.chest].add(frame);
 
-  const d = { group: holder, look, mats, armL, armR, thighL, thighR, shinL, shinR, bodyG, frame, acc: null, phase: Math.random() * 6.28, mv: 0 };
-  d.debug = () => 'parts ' + Object.keys(dude.geos).length + '  accessory pieces ' + (d.acc ? d.acc.children.length : 0) +
-    '  head at y ' + src.headC[1].toFixed(2);
+  const d = { group: holder, look, mats, bones, bodyG, frame, acc: null, phase: Math.random() * 6.28, mv: 0, t: Math.random() * 10 };
+  d.debug = () => 'bones ' + bones.length + '  materials ' + mats.length + '  accessory pieces ' + (d.acc ? d.acc.children.length : 0);
   d.dress = l => dude.dress(d, l);
   d.animate = (dt, speed) => dude.animate(d, dt, speed);
   d.dress(look);
-  dude.animate(d, 0, 0);                                   // arms down straight away (even for people who are far off)
+  dude.animate(d, 0, 0);                                   // arms down straight away (even for far-off people)
   return d;
 };
 
-dude.capGeo = function(r) {
-  dude.capCache = dude.capCache || {};
-  return dude.capCache[r] || (dude.capCache[r] = new THREE.SphereGeometry(r, 10, 8));
-};
-
 // ---------------------------------------------------------------- the walk
-// arms hang down and swing; legs swing and the knees bend. Faster when you move faster.
+const _q = new THREE.Quaternion(), _ax = new THREE.Vector3();
+// bend a forearm forwards by `ang` around the world side-to-side axis (the upper arm is tilted, so convert the axis)
+function elbowBend(bone, sd, ang) {
+  const a = MIX.ARM_DOWN;
+  _ax.set(Math.cos(a), sd > 0 ? Math.sin(a) : -Math.sin(a), 0);
+  bone.quaternion.setFromAxisAngle(_ax, -ang);
+}
 dude.animate = function(d, dt, speed) {
+  d.t += dt;
   const k = Math.min(1, speed / 1.5);
   d.mv += (k - d.mv) * Math.min(1, 8 * dt);
   d.phase += dt * (3 + 2.4 * Math.min(1.4, speed / 2.5));
-  const s = Math.sin(d.phase), mv = d.mv;
-  d.armL.rotation.set(s * 0.4 * mv, 0, -1.2);             // arm hangs down (Z), swings forward/back (X)
-  d.armR.rotation.set(-s * 0.4 * mv, 0, 1.2);
-  d.thighL.rotation.set(-s * 0.5 * mv, 0, 0);
-  d.thighR.rotation.set(s * 0.5 * mv, 0, 0);
-  d.shinL.rotation.set(Math.max(0, s) * 0.6 * mv, 0, 0);  // the knee bends on the way back (sign to check)
-  d.shinR.rotation.set(Math.max(0, -s) * 0.6 * mv, 0, 0);
-  d.bodyG.position.y = Math.abs(s) * 0.02 * mv;
-  d.armL.rotation.order = d.armR.rotation.order = 'XYZ';
+  const s = Math.sin(d.phase), c = Math.cos(d.phase), mv = d.mv, idle = 1 - mv;
+  const bn = d.bones, run = Math.max(0, Math.min(1, (speed - 4) / 4));
+  const A = 0.4 + 0.25 * run;                                   // swing size
+  // legs: swing at the hip, the knee bends while the leg comes forward
+  bn[B.thighL].rotation.set(-s * A * 1.1 * mv, 0, 0);
+  bn[B.thighR].rotation.set(s * A * 1.1 * mv, 0, 0);
+  bn[B.shinL].rotation.set((Math.max(0, c) * (0.7 + 0.5 * run) + 0.04) * mv, 0, 0);
+  bn[B.shinR].rotation.set((Math.max(0, -c) * (0.7 + 0.5 * run) + 0.04) * mv, 0, 0);
+  // arms: hang down (Z), swing opposite to the legs (X), elbows bend a little
+  const breathe = Math.sin(d.t * 1.7) * 0.03 * idle;
+  const out = 0.05 + Math.sin(d.t * 1.3) * 0.01 * idle;
+  bn[B.armL].rotation.set(s * A * mv + breathe, 0, -(MIX.ARM_DOWN - out));
+  bn[B.armR].rotation.set(-s * A * mv - breathe, 0, MIX.ARM_DOWN - out);
+  bn[B.armL].rotation.order = bn[B.armR].rotation.order = 'XYZ';
+  elbowBend(bn[B.foreL], 1, 0.12 + 0.55 * Math.max(0, -s) * mv + 0.45 * run * mv);
+  elbowBend(bn[B.foreR], -1, 0.12 + 0.55 * Math.max(0, s) * mv + 0.45 * run * mv);
+  // body: chest twists against the hips, bob, lean
+  bn[B.hips].rotation.set((0.03 + 0.1 * run) * mv, s * 0.07 * mv, s * 0.025 * mv);
+  bn[B.chest].rotation.set(0, -s * 0.16 * mv, Math.sin(d.t * 1.1) * 0.01 * idle);
+  bn[B.head].rotation.set(0, s * 0.06 * mv, 0);
+  d.bodyG.position.y = Math.abs(c) * 0.025 * mv + Math.sin(d.t * 2.2) * 0.004 * idle;
 };
 
 // ---------------------------------------------------------------- the clothes
@@ -226,10 +203,16 @@ dude.dress = function(d, look) {
   d.look = look;
   const o = ACC.get('outfit', look.outfit);
   const skin = ACC.SKINS[look.skin % ACC.SKINS.length];
-  d.mats.skin.color.setHex(skin);
-  d.mats.shirt.color.setHex(ACC.shirtOf(look, o));
-  d.mats.pants.color.setHex(ACC.pantsOf(look, o));
-  d.mats.shoe.color.setHex(o.shoes);
+  const shirt = ACC.shirtOf(look, o), pants = ACC.pantsOf(look, o);
+  const shorts = o.shortsY !== undefined;
+  const m = d.mats;
+  m[M.SKIN].color.setHex(skin);
+  m[M.SHIRT].color.setHex(shirt);
+  m[M.FOREARM].color.setHex(o.long ? shirt : skin);                  // long sleeves or bare forearms
+  m[M.HAIR].color.setHex(ACC.HAIRS[look.hair % ACC.HAIRS.length]);
+  m[M.SHOE].color.setHex(o.shoes);
+  // the three leg bands: bare skin below shortsY for shorts / dresses
+  [[M.PANTS_A, -0.92], [M.PANTS_B, -1.10], [M.PANTS_C, -1.37]].forEach(e => m[e[0]].color.setHex(shorts && e[1] < o.shortsY ? skin : pants));
   if (d.acc) { d.frame.remove(d.acc); ACC.dispose(d.acc); }
   d.acc = ACC.attach(d.frame, look);
 };
