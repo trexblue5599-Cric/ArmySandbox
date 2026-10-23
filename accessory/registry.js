@@ -2,7 +2,7 @@
 // Other files in this folder just call ACC.add(slot, id, definition). To add your own item, copy one and change it.
 //
 // A "look" is a small object that describes what one person wears:
-//   { outfit, c1, c2, hat, hc, glasses, back, bc, vest, skin, hair }
+//   { outfit, c1, c2, hat, hc, glasses, back, bc, vest, skin, hairstyle, hair }  (hair = colour index into the hairstyle's colours)
 //   c1 / c2 = shirt / pants colour index (into the outfit's colour lists), hc / bc = hat / back colour index
 const ACC = { slots: {}, order: {}, _mats: {} };
 
@@ -35,12 +35,12 @@ ACC.get = (slot, id) => (ACC.slots[slot] || {})[id];
 // make sure a look only uses things that exist (old saved looks, typos...)
 ACC.fix = function(look) {
   const L = Object.assign({}, ACC.defaultLook(), look || {});
-  ['outfit', 'hat', 'glasses', 'back', 'vest', 'face'].forEach(s => { if (!ACC.get(s, L[s])) L[s] = s === 'outfit' ? ACC.ids('outfit')[0] : 'none'; });
+  ['outfit', 'hat', 'glasses', 'back', 'vest', 'face', 'hairstyle'].forEach(s => { if (!ACC.get(s, L[s])) L[s] = s === 'outfit' ? ACC.ids('outfit')[0] : 'none'; });
   ['c1', 'c2', 'hc', 'bc', 'fc', 'skin', 'hair'].forEach(k => { L[k] = Math.abs(Math.floor(+L[k] || 0)); });
   return L;
 };
 
-ACC.defaultLook = () => ({ outfit: 'casual', c1: 0, c2: 0, hat: 'cap', hc: 0, glasses: 'none', back: 'none', bc: 0, vest: 'none', face: 'none', fc: 0, skin: 2, hair: 0 });
+ACC.defaultLook = () => ({ outfit: 'casual', c1: 0, c2: 0, hat: 'cap', hc: 0, glasses: 'none', back: 'none', bc: 0, vest: 'none', face: 'none', fc: 0, skin: 2, hairstyle: 'short', hair: 0 });
 
 // a random person (used for every pedestrian). rnd = a function returning 0..1
 ACC.randomLook = function(rnd) {
@@ -54,7 +54,8 @@ ACC.randomLook = function(rnd) {
     back: rnd() < 0.22 ? pick(non('back')) : 'none', bc: Math.floor(rnd() * 50),
     vest: rnd() < 0.07 ? pick(non('vest')) : 'none',
     face: rnd() < 0.3 ? pick(non('face')) : 'none', fc: Math.floor(rnd() * 50),
-    skin: Math.floor(rnd() * ACC.SKINS.length), hair: Math.floor(rnd() * ACC.HAIRS.length)
+    hairstyle: rnd() < 0.1 ? 'none' : pick(non('hairstyle')),
+    skin: Math.floor(rnd() * ACC.SKINS.length), hair: Math.floor(rnd() * 50)
   });
 };
 
@@ -71,13 +72,14 @@ ACC.attach = function(parent, look) {
   wear.scale.set(1 + 2 * DUDE_CLOTH / 0.34, 1, 1 + 2 * DUDE_CLOTH / 0.27);
   g.add(wear);
   const o = ACC.get('outfit', look.outfit);
-  const pick = (slot, id, idx, into) => {
+  const pick = (slot, id, idx, into, arg) => {
     const d = ACC.get(slot, id);
     if (!d || !d.build) return;
     const cols = d.colors || ACC.COLORS;
-    into.add(d.build(cols[idx % cols.length]));
+    into.add(d.build(cols[idx % cols.length], arg));
   };
   // head pieces: hat, glasses and face stay the same size
+  pick('hairstyle', look.hairstyle, look.hair, g, look.hat !== 'none');   // under the hat, so it shrinks when a hat is worn
   pick('hat', look.hat, look.hc, g);
   pick('glasses', look.glasses, 0, g);
   pick('face', look.face, look.fc, g);

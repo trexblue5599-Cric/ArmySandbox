@@ -52,7 +52,8 @@ wardrobe.init = function() {
     ['Back colour', colour('Colour', 'bc', () => (ACC.get('back', player.look.back).colors || ACC.COLORS))],
     ['Vest', item('vest', 'vest')],
     ['Skin', colour('Tone', 'skin', () => ACC.SKINS)],
-    ['Hair', colour('Colour', 'hair', () => ACC.HAIRS)]
+    ['Hairstyle', item('hairstyle', 'hairstyle')],
+    ['Hair colour', colour('Colour', 'hair', () => (ACC.get('hairstyle', player.look.hairstyle).colors || ACC.HAIRS))]
   ];
 
   const refreshers = [];
