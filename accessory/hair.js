@@ -52,11 +52,14 @@
   };
 
   // where hair grows: above a hairline that is high at the front, drops at the sideburns and at the back of the neck
-  const hairline = (front, side, back) => (x, y, z) => {
+  const lineY = (front, side, back) => (x, z) => {
     let yc = front - smooth(0.055, 0.095, Math.abs(x)) * side;
     if (z < -0.02) yc -= (-0.02 - z) * back;
-    return y > Math.max(yc, -0.06);
+    return Math.max(yc, -0.06);
   };
+  const hairline = (front, side, back) => { const L = lineY(front, side, back); return (x, y, z) => y > L(x, z); };
+  // shared with hats.js, so hats are shaped exactly like the head too
+  ACC.lineY = lineY; ACC.shellMesh = meshOf;
   const cap = (g, color, r, front, side, back, ymax) =>
     g.add(meshOf(blob({ c: [0, 0.02, 0.005], r, e: 0.5, keep: hairline(front, side, back), ymax }), color));
 
