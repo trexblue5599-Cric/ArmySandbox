@@ -7,6 +7,15 @@ world.collidesCars = function(x, z, r) {
   }
   return null;
 };
+// people are solid for the walking player (the driven car ignores them)
+world.collidesPeds = function(x, z, r) {
+  for (let i = 0; i < world.peds.length; i++) {
+    const p = world.peds[i];
+    if (!p.near) continue;
+    if (Math.hypot(x - p.g.position.x, z - p.g.position.z) < 0.35 + r) return p;
+  }
+  return null;
+};
 world.collides = function(x, z, r) {
   const list = world.obstacles;
   for (let i = 0; i < list.length; i++) {

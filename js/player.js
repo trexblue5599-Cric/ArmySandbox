@@ -70,8 +70,8 @@ player.update = function(dt) {
     const speed = (sprint ? player.runSpeed : player.walkSpeed) * mag;
     const r = player.radius;
     const nx = p.x + dx * speed * dt, nz = p.z + dz * speed * dt;
-    if (!world.collides(nx, p.z, r)) p.x = nx;         // slide along walls: test each axis separately
-    if (!world.collides(p.x, nz, r)) p.z = nz;
+    if (!world.collides(nx, p.z, r) && !world.collidesPeds(nx, p.z, r)) p.x = nx;         // slide along walls: test each axis separately
+    if (!world.collides(p.x, nz, r) && !world.collidesPeds(p.x, nz, r)) p.z = nz;
     if (!(typeof interior !== 'undefined' && interior.active)) {
       p.x = Math.max(-CONFIG.LIMIT, Math.min(CONFIG.LIMIT, p.x));
       p.z = Math.max(-CONFIG.LIMIT, Math.min(CONFIG.LIMIT, p.z));

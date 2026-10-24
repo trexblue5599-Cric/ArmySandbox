@@ -180,7 +180,9 @@ dude.make = function(look) {
   frame.position.set(-BONES[B.chest][2][0], -BONES[B.chest][2][1], -BONES[B.chest][2][2]);
   bones[B.chest].add(frame);
 
-  const d = { group: holder, look, mats, bones, bodyG, frame, acc: null, phase: Math.random() * 6.28, mv: 0, t: Math.random() * 10 };
+  const d = { group: holder, look, mats, bones, bodyG, frame, acc: null, phase: Math.random() * 6.28, mv: 0, t: Math.random() * 10, sT: 0, sDur: 0, sLx: 0, sLz: 0 };
+  // knock this person off balance: (lx, lz) = which way they are pushed, in their own left/right + forward/back, dur = seconds
+  d.stumble = (lx, lz, dur) => { d.sT = 0; d.sDur = dur || 1.8; d.sLx = lx; d.sLz = lz; };
   d.debug = () => 'bones ' + bones.length + '  materials ' + mats.length + '  accessory pieces ' + (d.acc ? d.acc.children.length : 0);
   d.dress = l => dude.dress(d, l);
   d.animate = (dt, speed) => dude.animate(d, dt, speed);
@@ -223,6 +225,30 @@ dude.animate = function(d, dt, speed) {
   bn[B.chest].rotation.set(0, -s * 0.16 * mv, Math.sin(d.t * 1.1) * 0.01 * idle);
   bn[B.head].rotation.set(0, s * 0.06 * mv, 0);
   d.bodyG.position.y = Math.abs(c) * 0.025 * mv + Math.sin(d.t * 2.2) * 0.004 * idle;
+
+  // ---- STUMBLE: lose balance, wobble and flail, then smoothly get back to normal
+  let st = 0;                                              // strength: jumps in fast, fades out slowly
+  if (d.sDur > 0) {
+    d.sT += dt;
+    if (d.sT >= d.sDur) d.sDur = 0;
+    else st = Math.min(1, d.sT / 0.12) * Math.pow(1 - d.sT / d.sDur, 1.3);
+  }
+  d.bodyG.rotation.set(0, 0, 0);
+  if (st > 0) {
+    const w = Math.sin(d.sT * 11), w2 = Math.sin(d.sT * 11 + 2.2);
+    d.bodyG.rotation.x = d.sLz * 0.45 * st + Math.cos(d.sT * 7) * 0.12 * st;     // body tips the way it was pushed...
+    d.bodyG.rotation.z = -d.sLx * 0.45 * st + w * 0.2 * st;                     // ...and wobbles side to side
+    const blend = (e, x, y, z) => { e.x += (x - e.x) * st; e.y += (y - e.y) * st; e.z += (z - e.z) * st; };
+    blend(bn[B.armL].rotation, w * 0.9, 0, -(MIX.ARM_DOWN - 1.25));              // arms flail up and out
+    blend(bn[B.armR].rotation, w2 * 0.9, 0, MIX.ARM_DOWN - 1.25);
+    blend(bn[B.thighL].rotation, -0.45 + w * 0.4, 0, 0);                         // legs scramble to stay up
+    blend(bn[B.thighR].rotation, -0.1 - w * 0.4, 0, 0);
+    blend(bn[B.shinL].rotation, 0.5 + Math.max(0, w) * 0.5, 0, 0);
+    blend(bn[B.shinR].rotation, 0.3 + Math.max(0, -w) * 0.5, 0, 0);
+    elbowBend(bn[B.foreL], 1, 0.15 + 0.7 * st);
+    elbowBend(bn[B.foreR], -1, 0.15 + 0.7 * st);
+    bn[B.head].rotation.x -= d.sLz * 0.3 * st;
+  }
 };
 
 // ---------------------------------------------------------------- the clothes
