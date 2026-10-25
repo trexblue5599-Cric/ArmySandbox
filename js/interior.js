@@ -10,7 +10,7 @@ interior.toWorld = (u, v) => ({ x: interior.ax - u, z: interior.az + v });
 
 interior.makeMarker = function(x, z, label) {
   const g = new THREE.Group();
-  g.position.set(x, interior.active || x > 500 ? 0 : world.groundAt(x, z), z);   // on the terrain outside, flat inside the house
+  g.position.set(x, 0, z);
   const basic = (c, o) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, side: THREE.DoubleSide, depthWrite: false });
   const disc = new THREE.Mesh(new THREE.CircleGeometry(1.0, 28), basic(0xffd600, 0.55)); disc.rotation.x = -Math.PI / 2; disc.position.y = 0.1; g.add(disc);
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.95, 1.13, 32), basic(0xffeb3b, 1)); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.14; g.add(ring);
@@ -116,12 +116,17 @@ interior.go = function(inside) {
     try {
       if (inside) interior.teleport(true, interior.toWorld(HOUSE.entry.u, HOUSE.entry.v), 0, 0);
       else {
-        const d = world.heroEntrance || { outX: 0, outZ: 0 };     // (no house outside? stand in the middle of the island)
-        interior.teleport(false, { x: d.outX, z: d.outZ }, Math.PI, Math.PI);
+        // outside: the nearest clear spot, so you are never put inside a wall, prop or in the road
+        const d = world.heroEntrance;
+        const spot = world.freeSpot ? world.freeSpot(d.outX, d.outZ) : { x: d.outX, z: d.outZ };
+        interior.teleport(false, spot, Math.PI, Math.PI);
       }
-    } catch (e) { console.error('interior.go failed', e); }
-    interior.fade.style.opacity = 0;                              // always clear the black fade, whatever happens
-    setTimeout(() => { interior.busy = false; }, 400);
+    } catch (e) {
+      console.warn('door problem', e);
+    } finally {
+      interior.fade.style.opacity = 0;                     // always clear the black, even if something went wrong
+      setTimeout(() => { interior.busy = false; }, 400);
+    }
   }, 400);
 };
 

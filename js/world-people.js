@@ -26,13 +26,10 @@ world.initPeople = function() {
     return { group: g, parts: P };
   };
   for (let i = 0; i < CONFIG.PEDESTRIANS; i++) {
-    const d = dude.make(ACC.randomLook(rnd));   // every pedestrian = dude.glb with a random outfit / hat / extras
+    const d = dude.make(ACC.randomLook(rnd));   // every pedestrian = Dude_remastered with a random outfit
     world.scene.add(d.group);
-    world.peds.push({
-      g: d.group, d, cx: pick(BLOCKS), cz: pick(BLOCKS),
-      s: rnd() * 111, sgn: rnd() < 0.5 ? 1 : -1, speed: 1.4 + rnd() * 0.8, off: (rnd() - 0.5) * 0.8,
-      wait: 0, next: 2 + rnd() * 20
-    });
+    const start = world.randomWalkable();        // starts somewhere walkable, then wanders freely
+    world.peds.push({ g: d.group, d, x: start.x, z: start.z, tx: null, tz: null, speed: 1.4 + rnd() * 0.8, wait: 0 });
   }
   world.ringPos = function(s, h) {
     const L = 2 * h;
