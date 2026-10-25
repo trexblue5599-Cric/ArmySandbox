@@ -8,22 +8,6 @@ world.initHarbour = function() {
     add(new THREE.BoxGeometry(w, h, d), color, x, y + h / 2, z);
     if (solid !== false) obstacle(x, z, w / 2, d / 2, h);
   };
-  // ---------- DOCKYARD PERIMETER ----------
-  // Continuous solid boundary: vehicles cannot cut across the quay into the sea
-  // or leave the designated dockyard area. The gate is intentionally not open.
-  const boundary = (x1, z1, x2, z2) => {
-    const dx = x2 - x1, dz = z2 - z1, length = Math.hypot(dx, dz), h = 2.4;
-    const rail = add(new THREE.BoxGeometry(length, h, 0.55), 0x455a64, (x1+x2)/2, h/2, (z1+z2)/2);
-    rail.rotation.y = -Math.atan2(dz, dx);
-    obstacle((x1+x2)/2, (z1+z2)/2, Math.abs(dx)/2 + 0.35, Math.abs(dz)/2 + 0.35, h);
-    for (let t = 0; t <= 1.001; t += 0.1) {
-      add(new THREE.BoxGeometry(0.4, h+0.35, 0.4), 0x263238, x1+dx*t, (h+0.35)/2, z1+dz*t);
-    }
-  };
-  boundary(122, -46, 182, -46);
-  boundary(122, 46, 182, 46);
-  boundary(122, -46, 122, 46);
-  boundary(182, -46, 182, 46);
 
   // ---------- the pier: a long walkway out over the sea, above the water ----------
   world.flat(22, 6, 0x9e9a92, 161, 0.17, 0, 0.02);

@@ -12,16 +12,16 @@ world.initGrass = function() {
   const cv = document.createElement('canvas'); cv.width = cv.height = 128;
   const g = cv.getContext('2d');
   g.fillStyle = '#e4e4e4'; g.fillRect(0, 0, 128, 128);
-  for (let i = 0; i < 1400; i++) {                       // soft speckles
+  for (let i = 0; i < 2600; i++) {                      // fine natural colour variation and speckles
     const v = 190 + Math.random() * 65 | 0;
     g.fillStyle = `rgb(${v},${v},${v})`;
     g.fillRect(Math.random() * 128, Math.random() * 128, 1 + Math.random() * 2, 1 + Math.random() * 2);
   }
   g.lineCap = 'round';
-  for (let i = 0; i < 520; i++) {                        // blades: short dark and light strokes
+  for (let i = 0; i < 2200; i++) {                       // denser short blades for a richer, textured grass surface
     const v = 120 + Math.random() * 70 | 0, x = Math.random() * 128, y = Math.random() * 128;
     g.strokeStyle = `rgb(${v},${v},${v})`; g.lineWidth = 0.8 + Math.random();
-    g.beginPath(); g.moveTo(x, y); g.lineTo(x + (Math.random() - 0.5) * 3, y - 2 - Math.random() * 3); g.stroke();
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + (Math.random() - 0.5) * 4, y - 2 - Math.random() * 5); g.stroke();
   }
   const base = new THREE.CanvasTexture(cv);
   base.wrapS = base.wrapT = THREE.RepeatWrapping;
