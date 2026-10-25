@@ -68,7 +68,7 @@ world.initTraffic = function() {
     const dx = (b[0] - a[0]) * c.dir, dz = (b[1] - a[1]) * c.dir;
     c.x = a[0] + (b[0] - a[0]) * t; c.z = a[1] + (b[1] - a[1]) * t;
     c.lx = c.x; c.lz = c.z;
-    c.g.position.set(c.x, 0, c.z);
+    c.g.position.set(c.x, world.groundAt ? world.groundAt(c.x, c.z) : 0, c.z);
     c.g.rotation.y = Math.atan2(dx, dz);
   }
   // the nearest point on any road (used when the player has got out of a car)

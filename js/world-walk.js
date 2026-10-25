@@ -20,8 +20,65 @@ world.roadGap = function(x, z) {
   return best;
 };
 
+// sea / river (the old version treated the whole map as water, so nobody could walk)
 world.inWaterAt = function(x, z) {
-  return world.mapRects.some(r => r.kind === 'w' && Math.abs(x - r.x) < r.w / 2 && Math.abs(z - r.z) < r.d / 2);
+  if (world.onDock && world.onDock(x, z)) return false;
+  return !MAP.containsLand(x, z) || MAP.inRiver(x, z);
+};
+
+// ---- quays and piers (registered by world-harbour.js): walkable even though they stick out over the sea ----
+world.docks = [];
+world.DOCK_TOP = 0.34;
+world.onDock = function(x, z) {
+  for (const d of world.docks) {
+    const c = Math.cos(d.rot), s = Math.sin(d.rot), dx = x - d.x, dz = z - d.z;
+    if (Math.abs(dx * c - dz * s) < d.w / 2 && Math.abs(dx * s + dz * c) < d.d / 2) return true;
+  }
+  return false;
+};
+
+// ---- how high the road surface is above the terrain (road 0.43, pavement 0.33, kerb 0.28) ----
+world.roadLift = function(x, z) {
+  if (!world.roadPaths) return 0;
+  const g = world.roadGap(x, z);
+  return g <= 0 ? 0.43 : g <= 1.5 ? 0.33 : g < 3 ? 0.28 : 0;
+};
+
+// ---- keep buildings off the roads ----
+// can a w x d box (centre x,z) stand here without touching a road (+ kerb) or the water?
+world.footprintClear = function(x, z, w, d, margin, avoidObstacles, dockOk) {
+  const hw = w / 2, hd = d / 2, nx = Math.max(1, Math.ceil(w / 3)), nz = Math.max(1, Math.ceil(d / 3));
+  for (let i = 0; i <= nx; i++) for (let j = 0; j <= nz; j++) {
+    if (i > 0 && i < nx && j > 0 && j < nz) continue;           // only the outline matters
+    const px = x - hw + (w * i) / nx, pz = z - hd + (d * j) / nz;
+    if (world.roadGap(px, pz) < margin) return false;
+    if (!(dockOk && world.onDock(px, pz)) && (!MAP.containsLand(px, pz) || MAP.riverDist(px, pz) < MAP.RIVER_WIDTH * 0.46 + 1)) return false;
+  }
+  if (avoidObstacles) {
+    for (const o of world.obstacles) {
+      if (o.h > 1 && Math.abs(x - o.x) < hw + o.hw + 1 && Math.abs(z - o.z) < hd + o.hd + 1) return false;
+    }
+  }
+  return true;
+};
+// find the nearest spot (and, if needed, a slightly smaller size) where the box is clear.
+// returns {x, z, w, d} or null when nothing fits.
+world.fitBuilding = function(x, z, w, d, opts) {
+  opts = opts || {};
+  const margin = opts.margin === undefined ? 1.5 : opts.margin;
+  const scales = opts.scales || [1, 0.9, 0.8, 0.7];
+  const maxR = opts.maxR === undefined ? 14 : opts.maxR;
+  for (const sc of scales) {
+    const ww = w * sc, dd = d * sc;
+    if (world.footprintClear(x, z, ww, dd, margin, opts.avoidObstacles, opts.dockOk)) return { x, z, w: ww, d: dd };
+    for (let r = 1; r <= maxR; r += 1) {
+      for (let k = 0; k < 24; k++) {
+        const a = (k / 24) * Math.PI * 2, tx = x + Math.cos(a) * r, tz = z + Math.sin(a) * r;
+        if (world.footprintClear(tx, tz, ww, dd, margin, opts.avoidObstacles, opts.dockOk)) return { x: tx, z: tz, w: ww, d: dd };
+      }
+    }
+  }
+  return null;
 };
 
 // can a person stand here? (grass, pavement and fields are fine; roads, water and solids are not)

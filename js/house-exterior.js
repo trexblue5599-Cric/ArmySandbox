@@ -64,10 +64,20 @@ world.heroHouse = function(x, z, wall, roof) {
 };
 
 // the ground height at a spot (the island has hills; the old flat city is 0)
-world.groundAt = (x, z) => (typeof MAP !== 'undefined' && MAP.heightAt && Math.abs(x) < CONFIG.LIMIT && Math.abs(z) < CONFIG.LIMIT) ? MAP.heightAt(x, z) : 0;
+world.groundAt = (x, z) => {
+  if (typeof MAP === 'undefined' || !MAP.heightAt || Math.abs(x) >= CONFIG.LIMIT || Math.abs(z) >= CONFIG.LIMIT) return 0;
+  const y = MAP.heightAt(x, z);
+  const lift = world.roadLift ? world.roadLift(x, z) : 0;       // roads / pavements / bridges stand a little above the grass
+  if (lift > 0) return y + lift;
+  if (world.onDock && world.onDock(x, z)) return Math.max(y, world.DOCK_TOP);   // quay and piers
+  return y;
+};
 
 // your house: built at HERO (the district house on that spot is skipped, so there is only one)
 world.initHeroHouse = function() {
   if (world.heroEntrance) return;
+  // the spot from the map overlaps a road: slide the house to the nearest clear ground
+  const fit = world.fitBuilding && world.fitBuilding(HERO.x, HERO.z, 9, 9, { scales: [1], maxR: 16, margin: 4, avoidObstacles: true });
+  if (fit) { HERO.x = fit.x; HERO.z = fit.z; }
   world.heroHouse(HERO.x, HERO.z, 0xf1b5c4, 0x2e7d32);   // pink walls, green roof
 };

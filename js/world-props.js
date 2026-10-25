@@ -86,7 +86,15 @@ world.initProps = function() {
     }, undefined, err => { console.warn('prop not found:', name, err); done(); });
   });
 
+  // props were laid out for an older city grid: skip any that now land in the sea, a river, on a road or inside a building
+  function propSpotOk(x, z) {
+    if (!MAP.containsLand(x, z) || MAP.inRiverRaw(x, z)) return false;
+    if (world.roadGap(x, z) < 1.5) return false;
+    for (const o of world.obstacles) if (o.h > 2 && Math.abs(x - o.x) < o.hw + 0.4 && Math.abs(z - o.z) < o.hd + 0.4) return false;
+    return true;
+  }
   function place(m, h, x, z, rot, solid) {
+    if (!propSpotOk(x, z)) return null;
     const s = h / m.size.y;
     const holder = new THREE.Group();
     const obj = m.root.clone(true);                      // shares the geometry + colours: cheap
@@ -94,7 +102,7 @@ world.initProps = function() {
     const c = m.box.getCenter(new THREE.Vector3());
     obj.position.set(-c.x * s, -m.box.min.y * s, -c.z * s);
     holder.add(obj);
-    holder.position.set(x, 0, z);
+    holder.position.set(x, world.groundAt(x, z), z);
     holder.rotation.y = rot;
     world.scene.add(holder);
     if (solid) world.obstacle(x, z, Math.max(0.3, m.size.x * s * 0.4), Math.max(0.3, m.size.z * s * 0.4), h);

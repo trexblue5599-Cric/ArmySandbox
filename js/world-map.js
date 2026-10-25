@@ -147,6 +147,12 @@ const MAP = {
   },
 
   inRiver(x, z) {
+    if (this.riverDist(x, z) >= this.RIVER_WIDTH * 0.46) return false;
+    // a road laid across the river is a bridge: you can walk and drive on it
+    if (typeof world !== 'undefined' && world.roadGap && world.roadPaths && world.roadGap(x, z) < 3) return false;
+    return true;
+  },
+  inRiverRaw(x, z) {
     return this.riverDist(x, z) < this.RIVER_WIDTH * 0.46;
   },
 
@@ -400,13 +406,7 @@ world.initMap = function() {
     minZ: Math.min(box.minZ, point[1]),
     maxZ: Math.max(box.maxZ, point[1])
   }), { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity });
-  obstacle(
-    (bounds.minX + bounds.maxX) / 2,
-    (bounds.minZ + bounds.maxZ) / 2,
-    (bounds.maxX - bounds.minX) / 2,
-    (bounds.maxZ - bounds.minZ) / 2,
-    0.1
-  );
+  // (no island-wide obstacle: collision ignores heights, so it blocked ALL walking. Water is handled by world.inWaterSpot.)
   world.mapRects.push({
     kind: 'p',
     x: (bounds.minX + bounds.maxX) / 2,

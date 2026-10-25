@@ -20,6 +20,7 @@ world.collidesPeds = function(x, z, r) {
 world.inWaterSpot = function(x, z) {
   if (typeof MAP === 'undefined' || !MAP.containsLand) return false;
   if (typeof interior !== 'undefined' && interior.active) return false;
+  if (world.onDock && world.onDock(x, z)) return false;   // quay + piers are walkable
   return !MAP.containsLand(x, z) || (MAP.inRiver && MAP.inRiver(x, z));
 };
 world.collides = function(x, z, r) {
@@ -27,6 +28,7 @@ world.collides = function(x, z, r) {
   const list = world.obstacles;
   for (let i = 0; i < list.length; i++) {
     const o = list[i];
+    if (o.h < 0.5) continue;   // flat slabs / kerbs you simply step over
     if (Math.abs(x - o.x) < o.hw + r && Math.abs(z - o.z) < o.hd + r) return o;
   }
   return world.collidesCars(x, z, r);

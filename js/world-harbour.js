@@ -19,7 +19,11 @@ world.initHarbour = function() {
     const [x, z] = toWorld([px, py]);
     return box(w, h, d, color, x, bottomY, z, solid, rotation || 0);
   };
-  const dock = (w, d, px, py, rotation) => boxFromPixels(w, 0.85, d, 0x777a78, px, py, true, rotation);
+  const dock = (w, d, px, py, rotation) => {
+    const [dx, dz] = toWorld([px, py]);
+    world.docks.push({ x: dx, z: dz, w, d, rot: rotation });          // you can walk on it
+    return boxFromPixels(w, 0.3, d, 0x777a78, px, py, false, rotation);   // low slab, top at 0.34
+  };
 
   // Broad quay with three narrow fingers extending into the eastern ocean.
   const quayAngle = -0.42;
@@ -32,14 +36,19 @@ world.initHarbour = function() {
   });
 
   // Warehouse row and colorful cargo stacks.
+  // (a shed or container that would sit on the road is slid aside, or left out if there is no room)
+  const clearSpot = (x, z, w, d) => world.fitBuilding(x, z, w, d, { scales: [1], maxR: 14, margin: 1, dockOk: true });
   [[760, 380], [782, 388], [803, 398]].forEach((p, index) => {
     const [x, z] = toWorld(p);
-    box(18, 7 + (index % 2), 13, [0x78909c, 0xb2794d, 0x657e89][index], x, 0.05, z, true, -0.42);
+    const f = clearSpot(x, z, 18, 13); if (!f) return;
+    box(18, 7 + (index % 2), 13, [0x78909c, 0xb2794d, 0x657e89][index], f.x, 0.05, f.z, true, -0.42);
   });
   const containerColors = [0xc94535, 0x246aa0, 0xe18b32, 0x3e8050, 0xd1a52f, 0x724d8d];
   [[787, 379], [797, 381], [807, 386], [817, 389], [792, 386], [802, 390], [812, 395], [822, 399]].forEach((p, i) => {
-    boxFromPixels(8, 3.1, 4.6, containerColors[i % containerColors.length], p[0], p[1], true, -0.42);
-    if (i < 4) boxFromPixels(8, 3.1, 4.6, containerColors[(i + 2) % containerColors.length], p[0], p[1], true, -0.42, 3.14);
+    const [cx, cz] = toWorld(p);
+    const f = clearSpot(cx, cz, 8, 4.6); if (!f) return;
+    box(8, 3.1, 4.6, containerColors[i % containerColors.length], f.x, 0.04, f.z, true, -0.42);
+    if (i < 4) box(8, 3.1, 4.6, containerColors[(i + 2) % containerColors.length], f.x, 3.14, f.z, true, -0.42);
   });
 
   // Two dock cranes with tall legs, cross-bracing, and booms.
@@ -52,7 +61,7 @@ world.initHarbour = function() {
     };
     const post = (dx, dz, w, h, d, color, y) => {
       const [bx, bz] = offset(dx, dz);
-      return box(w, h, d, color, bx, y, bz, true, rotation);
+      return box(w, h, d, color, bx, y, bz, !!world.footprintClear(bx, bz, 1, 1, 1.5) || false, rotation);
     };
     [-4, 4].forEach((dx) => [-1, 1].forEach((dz) => post(dx, dz, 1, H, 1, 0xe6a82e, Y)));
     post(0, 0, 11, 1.2, 5, 0xe6a82e, H - 0.6);

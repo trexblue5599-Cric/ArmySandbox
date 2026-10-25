@@ -38,7 +38,17 @@ world.initRoads = function() {
   const curbMaterial = new THREE.MeshLambertMaterial({ color: 0x777b76, side: THREE.DoubleSide });
   const sidewalkMaterial = new THREE.MeshLambertMaterial({ color: 0xb9b6a8, side: THREE.DoubleSide });
 
+  // add a point every ~3 m so the road hugs the hills (a point every 25 m let the grass poke through)
+  const densify = (pts, step = 3) => {
+    const out = [pts[0]];
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i], n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / step));
+      for (let k = 1; k <= n; k++) out.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]);
+    }
+    return out;
+  };
   const ribbonMesh = (points, width, material, yOffset) => {
+    points = densify(points);
     const positions = [];
     const indices = [];
     points.forEach((point, index) => {
@@ -86,8 +96,8 @@ world.initRoads = function() {
         const z0 = a[1] + uz * distance;
         const x1 = a[0] + ux * end;
         const z1 = a[1] + uz * end;
-        const y0 = (MAP.heightAt ? MAP.heightAt(x0, z0) : 0.2) + 0.72;
-        const y1 = (MAP.heightAt ? MAP.heightAt(x1, z1) : 0.2) + 0.72;
+        const y0 = (MAP.heightAt ? MAP.heightAt(x0, z0) : 0.2) + 0.47;
+        const y1 = (MAP.heightAt ? MAP.heightAt(x1, z1) : 0.2) + 0.47;
         vertices.push(x0, y0, z0, x1, y1, z1);
       }
     }

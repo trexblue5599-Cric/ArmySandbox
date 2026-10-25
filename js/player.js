@@ -85,7 +85,8 @@ player.update = function(dt) {
     }
   }
   if (fpOn) player.soldier.rotation.y = world.camYaw;  // first person: the body always faces where you look
-  p.y = (typeof interior !== 'undefined' && interior.active) ? 0 : world.groundAt(p.x, p.z) + 0.05;   // stand on the hills / terrain
+  if (typeof interior !== 'undefined' && interior.active) p.y = 0;
+  else { const gy = world.groundAt(p.x, p.z) + 0.05; p.y = (Math.abs(gy - p.y) > 2) ? gy : p.y + (gy - p.y) * Math.min(1, 14 * dt); }   // stand on the hills / roads / bridges (eased)
   const moved = dt > 0 ? Math.hypot(p.x - bx, p.z - bz) / dt : 0;
   player.speed += (moved - player.speed) * Math.min(1, 12 * dt);
   if (!fpOn) player.dude.animate(dt, player.speed);   // nobody sees the body in first person

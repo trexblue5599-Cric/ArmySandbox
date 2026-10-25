@@ -43,17 +43,23 @@ world.initDistricts = function() {
     { id: 'dockyard', xMin: 260, xMax: 360, zMin: 105, zMax: 170 }
   ];
 
-  const canBuild = (x, z) => MAP.containsLand(x, z) && !MAP.inRiver(x, z);
-  const build = (px, py, w, d, h, style, tint) => {
-    const [x, z] = toWorld([px, py]);
-    if (!canBuild(x, z)) return null;
-    world.building(x, z, w, d, h, style, tint);
-    return { x, z, w, d, h };
+  const canBuild = (x, z) => MAP.containsLand(x, z) && !MAP.inRiverRaw(x, z);
+  // landmarks keep their size (their signs are sized to fit): they only slide sideways.
+  // ordinary blocks may also shrink a little. Anything that cannot fit clear of the roads is skipped.
+  const build = (px, py, w, d, h, style, tint, landmark) => {
+    const [x0, z0] = toWorld([px, py]);
+    if (!canBuild(x0, z0)) return null;
+    const fit = world.fitBuilding(x0, z0, w, d, landmark ? { scales: [1, 0.9, 0.82], maxR: 14, margin: 1 } : {});
+    if (!fit) return landmark ? (world.building(x0, z0, w, d, h, style, tint), { x: x0, z: z0, w, d, h }) : null;
+    world.building(fit.x, fit.z, fit.w, fit.d, h, style, tint);
+    return { x: fit.x, z: fit.z, w: fit.w, d: fit.d, h };
   };
   const house = (px, py, wall, roof) => {
     const [x, z] = toWorld([px, py]);
     if (world.isHeroHouse && world.isHeroHouse(x, z)) return;   // your house is built separately
-    if (canBuild(x, z)) world.house(x, z, wall, roof);
+    if (!canBuild(x, z)) return;
+    const fit = world.fitBuilding(x, z, 9, 9, { scales: [1], maxR: 16 });
+    if (fit) world.house(fit.x, fit.z, wall, roof);
   };
   const detailBox = (w, h, d, color, x, y, z) => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material(color));
@@ -95,31 +101,31 @@ world.initDistricts = function() {
 
   // Named businesses and public services are intentionally distinct in shape,
   // scale, and color so they read as destinations from a zoomed-out camera.
-  const gunShop = build(398, 240, 20, 15, 13, 'brick', 0xb87954);
+  const gunShop = build(398, 240, 20, 15, 13, 'brick', 0xb87954, true);
   if (gunShop) detailBox(11, 0.7, 0.5, 0xc5c7c4, gunShop.x, 13.4, gunShop.z - 7.8);
-  const club = build(532, 216, 21, 17, 31, 'concrete', 0x76427d);
+  const club = build(532, 216, 21, 17, 31, 'concrete', 0x76427d, true);
   if (club) {
     detailBox(22, 1.2, 18, 0x36283e, club.x, 23, club.z);
     detailBox(13, 1.0, 0.35, 0xe34bd0, club.x, 26, club.z - 9);
   }
-  const hospital = build(649, 185, 23, 20, 28, 'beige', 0xe8e3d5);
+  const hospital = build(649, 185, 23, 20, 28, 'beige', 0xe8e3d5, true);
   if (hospital) {
     detailBox(1.5, 5, 1.1, 0xd94141, hospital.x, 30, hospital.z - 10.6);
     detailBox(5, 1.5, 1.1, 0xd94141, hospital.x, 30, hospital.z - 10.6);
   }
-  const police = build(643, 247, 23, 19, 21, 'concrete', 0x8ba6b7);
+  const police = build(643, 247, 23, 19, 21, 'concrete', 0x8ba6b7, true);
   if (police) {
     detailBox(15, 0.5, 0.6, 0x4b78b6, police.x, 20.8, police.z - 9.9);
     detailBox(5, 3, 0.55, 0xe3c35f, police.x, 24, police.z - 10.3);
   }
-  const casino = build(693, 279, 24, 20, 30, 'brick', 0x9c4c48);
+  const casino = build(693, 279, 24, 20, 30, 'brick', 0x9c4c48, true);
   if (casino) {
     detailBox(26, 1.3, 22, 0xd4a83f, casino.x, 20, casino.z);
     detailBox(18, 1.1, 0.5, 0xffcc55, casino.x, 31.5, casino.z - 10.2);
   }
-  const carShop = build(422, 350, 23, 18, 12, 'metal', 0x8d9394);
+  const carShop = build(422, 350, 23, 18, 12, 'metal', 0x8d9394, true);
   if (carShop) detailBox(10, 2.4, 0.55, 0xe58a46, carShop.x, 12.8, carShop.z - 9.3);
-  const bank = build(590, 340, 25, 21, 23, 'beige', 0xd7c6a4);
+  const bank = build(590, 340, 25, 21, 23, 'beige', 0xd7c6a4, true);
   if (bank) {
     detailBox(29, 1.2, 23, 0x4b6a58, bank.x, 20.5, bank.z);
     [-8, 0, 8].forEach((offset) => detailBox(1, 8, 1, 0xe2d6bd, bank.x + offset, 5, bank.z - 8));

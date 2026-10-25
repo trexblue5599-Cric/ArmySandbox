@@ -23,7 +23,7 @@ const vehicleDrive = {
       model.scale.setScalar(1.5);
       model.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
       root.add(model);
-      const s = spots[i]; root.position.set(s.x, 0, s.z); root.rotation.y = s.rot;
+      const s = spots[i]; root.position.set(s.x, (world.groundAt?world.groundAt(s.x,s.z):0), s.z); root.rotation.y = s.rot;
       root.userData.driveable = true;
       world.scene.add(root);
       this.cars.push({ root, x:s.x, z:s.z, yaw:s.rot, path, speed:0 });
@@ -96,6 +96,9 @@ const vehicleDrive = {
       const yaw = c.traffic ? c.root.rotation.y : c.yaw;
       const sideX=Math.cos(yaw)*1.8, sideZ=-Math.sin(yaw)*1.8;
       p.set(c.root.position.x+sideX,0,c.root.position.z+sideZ);
+      if (world.collides(p.x,p.z,0.4)) {   // never step out into a wall / the water
+        out: for (let r=0.6;r<=8;r+=0.6) for (let k=0;k<16;k++) { const a=k/16*Math.PI*2, tx=c.root.position.x+Math.cos(a)*(1.8+r), tz=c.root.position.z+Math.sin(a)*(1.8+r); if(!world.collides(tx,tz,0.4)){ p.x=tx; p.z=tz; break out; } }
+      }
       player.soldier.visible=true; player.model.visible=true;
       this.active=null; this.speed=0; this.keys={}; this.panel.style.display='none'; this.steerPanel.style.display='none'; this.help.style.display='none';
       this.setWalkControls(true);
@@ -127,7 +130,7 @@ const vehicleDrive = {
     const nz=c.root.position.z+Math.cos(yaw)*this.speed*dt;
     const blocked=world.collides(nx,nz,1.35);
     if(!blocked && Math.abs(nx)<CONFIG.LIMIT-2 && Math.abs(nz)<CONFIG.LIMIT-2) {
-      c.root.position.set(nx,0,nz);
+      c.root.position.set(nx,(world.groundAt?world.groundAt(nx,nz):0),nz);
       if (c.traffic) { c.traffic.x=nx; c.traffic.z=nz; c.traffic.dir=1; c.traffic.speed=0; c.traffic.cruise=0; c.traffic.alongZ=false; c.yaw = yaw + steering*this.turnRate*dt*Math.sign(this.speed)*Math.min(1,Math.abs(this.speed)/4); c.root.rotation.y=c.yaw; }
       else c.yaw = yaw + steering*this.turnRate*dt*Math.sign(this.speed)*Math.min(1,Math.abs(this.speed)/4);
     } else this.speed=0;
