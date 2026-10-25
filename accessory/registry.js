@@ -93,3 +93,16 @@ ACC.attach = function(parent, look) {
   return g;
 };
 ACC.dispose = function(g) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); }); };
+
+// The head-shape helper used by the hats and hair. Defined here (before any hat is built), so it always exists.
+// hair.js defines the same function; either way it works.
+if (!ACC.lineY) {
+  ACC.lineY = function(front, side, back) {
+    const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+    return (x, z) => {
+      let yc = front - smooth(0.055, 0.095, Math.abs(x)) * side;
+      if (z < -0.02) yc -= (-0.02 - z) * back;
+      return Math.max(yc, -0.06);
+    };
+  };
+}
