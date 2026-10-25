@@ -1,12 +1,26 @@
 // js/house-exterior.js  -  YOUR house: the pink house with the green roof, now with a front door and a garage.
 // It replaces one of the city's houses (the one at HERO.x, HERO.z). Its yellow entry marker is at the front door.
-const HERO = { x: -93, z: -67 };
+// Where your house stands on the island (x, z). Pick flat land, at least ~35 away from water and the river.
+const HERO = { x: -105, z: -40 };
 
 world.isHeroHouse = (x, z) => Math.abs(x - HERO.x) < 0.01 && Math.abs(z - HERO.z) < 0.01;
 // trees that stood in front of the house (removed so they don't block the door)
 world.isHeroTree = (x, z) => (Math.abs(x - (HERO.x)) < 0.01 && Math.abs(z - (HERO.z - 7.5)) < 0.01);
 
+// the ground height at a spot (your island has hills; the old flat city is 0)
+world.groundAt = (x, z) => (typeof MAP !== 'undefined' && MAP.heightAt && Math.abs(x) < CONFIG.LIMIT && Math.abs(z) < CONFIG.LIMIT) ? MAP.heightAt(x, z) : 0;
+
+// Builds your house at HERO.x, HERO.z (called from main.js). If a city district already built it, nothing happens.
+// This is what gives the house its door, so you can enter / leave it, even when there are no city blocks any more.
+world.initHeroHouse = function() {
+  if (world.heroEntrance) return;
+  world.heroHouse(HERO.x, HERO.z, 0xf1b5c4, 0x2e7d32);   // pink walls, green roof
+};
+
 world.heroHouse = function(x, z, wall, roof) {
+  const prevCur = world.cur, lift = new THREE.Group();     // everything of the house stands on the terrain
+  lift.position.y = world.groundAt(x, z);
+  prevCur.add(lift); world.cur = lift;
   const add = world.add, flat = world.flat, W = 9, D = 9, Hh = 4.6, hw = W / 2;
   const zf = z - hw;                     // front face (faces the street, -z)
   const xd = x - 2.7;                    // front door  (right side as you look at the house)
@@ -61,4 +75,5 @@ world.heroHouse = function(x, z, wall, roof) {
 
   // where the yellow entry marker is, and where you appear when you come back out
   world.heroEntrance = { x: xd, z: zf - 1.5, outX: xd, outZ: zf - 3.8 };
+  world.cur = prevCur;
 };

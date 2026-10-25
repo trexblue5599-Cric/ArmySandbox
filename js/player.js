@@ -85,6 +85,7 @@ player.update = function(dt) {
     }
   }
   if (fpOn) player.soldier.rotation.y = world.camYaw;  // first person: the body always faces where you look
+  p.y = (typeof interior !== 'undefined' && interior.active) ? 0 : world.groundAt(p.x, p.z) + 0.05;   // stand on the hills / terrain
   const moved = dt > 0 ? Math.hypot(p.x - bx, p.z - bz) / dt : 0;
   player.speed += (moved - player.speed) * Math.min(1, 12 * dt);
   if (!fpOn) player.dude.animate(dt, player.speed);   // nobody sees the body in first person

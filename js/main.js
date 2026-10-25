@@ -7,6 +7,7 @@ function startGame() {
   world.initBuildings();
   world.initDistricts();
   world.initMap();          // farmland, lake, harbour, airport, roads outside the city
+  world.initHeroHouse();    // YOUR house with its front door (house-exterior.js)
   world.initOutskirts();    // forests and mountains
   world.initFill();         // trees, bushes and paved slabs on the empty land
   world.initHarbour();      // harbour zone: pier, lighthouse, cranes, containers, rental hut

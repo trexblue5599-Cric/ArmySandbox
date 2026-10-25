@@ -16,7 +16,14 @@ world.collidesPeds = function(x, z, r) {
   }
   return null;
 };
+// the sea and the rivers: you can't walk into water (only on your island map; never inside the house)
+world.inWaterSpot = function(x, z) {
+  if (typeof MAP === 'undefined' || !MAP.containsLand) return false;
+  if (typeof interior !== 'undefined' && interior.active) return false;
+  return !MAP.containsLand(x, z) || (MAP.inRiver && MAP.inRiver(x, z));
+};
 world.collides = function(x, z, r) {
+  if (world.inWaterSpot(x, z)) return { water: true };
   const list = world.obstacles;
   for (let i = 0; i < list.length; i++) {
     const o = list[i];

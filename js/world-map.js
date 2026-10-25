@@ -400,13 +400,7 @@ world.initMap = function() {
     minZ: Math.min(box.minZ, point[1]),
     maxZ: Math.max(box.maxZ, point[1])
   }), { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity });
-  obstacle(
-    (bounds.minX + bounds.maxX) / 2,
-    (bounds.minZ + bounds.maxZ) / 2,
-    (bounds.maxX - bounds.minX) / 2,
-    (bounds.maxZ - bounds.minZ) / 2,
-    0.1
-  );
+  // (the old giant obstacle over the whole island was removed: it blocked walking everywhere. Water is handled in world-collision.js)
   world.mapRects.push({
     kind: 'p',
     x: (bounds.minX + bounds.maxX) / 2,

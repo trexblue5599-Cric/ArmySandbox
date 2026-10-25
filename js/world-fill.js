@@ -17,6 +17,7 @@ world.initFill = function() {
   }), { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity });
   const groundY = (x, z) => (MAP.heightAt ? MAP.heightAt(x, z) : 0.18) + 0.055;
   const safeGround = (x, z, shoreMargin = 17, riverMargin = 13) =>
+    !(typeof HERO !== 'undefined' && Math.hypot(x - HERO.x, z - HERO.z) < 17) &&   // keep your house + garden clear
     MAP.containsLand(x, z) &&
     MAP.coastDist(x, z) > shoreMargin &&
     MAP.riverDist(x, z) > riverMargin;
