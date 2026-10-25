@@ -1,6 +1,6 @@
 // js/house-exterior.js  -  YOUR house: the pink house with the green roof, now with a front door and a garage.
 // It replaces one of the city's houses (the one at HERO.x, HERO.z). Its yellow entry marker is at the front door.
-const HERO = { x: -93, z: -67 };
+const HERO = { x: -184.3, z: -144.5 };   // the district house at this spot is your house (it is built as your house)
 
 world.isHeroHouse = (x, z) => Math.abs(x - HERO.x) < 0.01 && Math.abs(z - HERO.z) < 0.01;
 // trees that stood in front of the house (removed so they don't block the door)
@@ -61,4 +61,13 @@ world.heroHouse = function(x, z, wall, roof) {
 
   // where the yellow entry marker is, and where you appear when you come back out
   world.heroEntrance = { x: xd, z: zf - 1.5, outX: xd, outZ: zf - 3.8 };
+};
+
+// the ground height at a spot (the island has hills; the old flat city is 0)
+world.groundAt = (x, z) => (typeof MAP !== 'undefined' && MAP.heightAt && Math.abs(x) < CONFIG.LIMIT && Math.abs(z) < CONFIG.LIMIT) ? MAP.heightAt(x, z) : 0;
+
+// your house: built at HERO (the district house on that spot is skipped, so there is only one)
+world.initHeroHouse = function() {
+  if (world.heroEntrance) return;
+  world.heroHouse(HERO.x, HERO.z, 0xf1b5c4, 0x2e7d32);   // pink walls, green roof
 };

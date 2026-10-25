@@ -28,6 +28,7 @@ function startGame() {
   step("initHud()", () => { initHud(); });
   step("initMinimap()", () => { initMinimap(); });
   step("wardrobe.init()", () => { wardrobe.init(); });
+  step("world.initHeroHouse()", () => { world.initHeroHouse(); });   // your house, on the clear ground at HERO
   step("interior.init()", () => { interior.init(); });  // builds the inside of the house
   step("world.initGrass()", () => { world.initGrass(); });  // grass texture on every grass ground (after the house lawn exists)
   step("interior.spawnInside()", () => { interior.spawnInside(); });  // you start inside the house

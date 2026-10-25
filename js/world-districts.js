@@ -52,6 +52,7 @@ world.initDistricts = function() {
   };
   const house = (px, py, wall, roof) => {
     const [x, z] = toWorld([px, py]);
+    if (world.isHeroHouse && world.isHeroHouse(x, z)) return;   // your house is built separately
     if (canBuild(x, z)) world.house(x, z, wall, roof);
   };
   const detailBox = (w, h, d, color, x, y, z) => {
