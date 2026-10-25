@@ -16,11 +16,19 @@ world.initFill = function() {
     maxZ: Math.max(box.maxZ, point[1])
   }), { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity });
   const groundY = (x, z) => (MAP.heightAt ? MAP.heightAt(x, z) : 0.18) + 0.055;
+  const insideUrbanClearance = (x, z) => {
+    const centralCity = x > -112 && x < 194 && z > -88 && z < 112;
+    const northTown = Math.hypot((x + 155) * 0.9, (z + 130) * 1.1) < 47;
+    const westSuburbs = Math.hypot(x + 270, z - 39) < 44;
+    const eastSafehouse = Math.hypot(x - 289, z + 91) < 34;
+    const southeastHarbour = x > 260 && x < 370 && z > 100 && z < 176;
+    return centralCity || northTown || westSuburbs || eastSafehouse || southeastHarbour;
+  };
   const safeGround = (x, z, shoreMargin = 17, riverMargin = 13) =>
-    !(typeof HERO !== 'undefined' && Math.hypot(x - HERO.x, z - HERO.z) < 17) &&   // keep your house + garden clear
     MAP.containsLand(x, z) &&
     MAP.coastDist(x, z) > shoreMargin &&
-    MAP.riverDist(x, z) > riverMargin;
+    MAP.riverDist(x, z) > riverMargin &&
+    !insideUrbanClearance(x, z);
 
   const randomLandPoint = (shoreMargin = 16, riverMargin = 12) => {
     for (let attempt = 0; attempt < 180; attempt++) {
@@ -151,7 +159,7 @@ world.initFill = function() {
   // central open grassland or placing trunks on the beach or river banks.
   for (let i = 0; i < 72; i++) {
     const point = randomLandPoint(20, 18);
-    if (!point || (Math.abs(point.x) < 70 && Math.abs(point.z) < 75)) continue;
+    if (!point || insideUrbanClearance(point.x, point.z)) continue;
     const target = random() < 0.67 ? pines : broadleaf;
     target.push({
       x: point.x,
