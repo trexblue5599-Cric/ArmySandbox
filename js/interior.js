@@ -118,7 +118,8 @@ interior.go = function(inside) {
       else {
         // outside: the nearest clear spot, so you are never put inside a wall, prop or in the road
         const d = world.heroEntrance;
-        const spot = world.freeSpot ? world.freeSpot(d.outX, d.outZ) : { x: d.outX, z: d.outZ };
+        // 1.5 m further out than the door's outside point, so you don't land on the threshold
+        const spot = world.freeSpot ? world.freeSpot(d.outX, d.outZ - 1.5) : { x: d.outX, z: d.outZ - 1.5 };
         interior.teleport(false, spot, Math.PI, Math.PI);
       }
     } catch (e) {
