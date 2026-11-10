@@ -24,11 +24,19 @@ world.initFill = function() {
     const southeastHarbour = x > 260 && x < 370 && z > 100 && z < 176;
     return centralCity || northTown || westSuburbs || eastSafehouse || southeastHarbour;
   };
+  // nothing grows on roads, the railway, inside buildings or on the harbour docks
+  const onRail = (x, z) => typeof TRAIN !== 'undefined' && Math.abs(x - TRAIN.X) < 7 && z > TRAIN.Z0 - 8 && z < TRAIN.Z1 + 8;
+  const buildingRects = (world.mapRects || []).filter((r) => r.kind === 'b');
+  const nearBuilding = (x, z) => buildingRects.some((b) => Math.abs(x - b.x) < b.w / 2 + 5 && Math.abs(z - b.z) < b.d / 2 + 5);
+  const blockedByMan = (x, z) =>
+    (world.roadGap && world.roadPaths && world.roadGap(x, z) < 7) ||
+    onRail(x, z) || nearBuilding(x, z) || (world.onDock && world.onDock(x, z));
   const safeGround = (x, z, shoreMargin = 17, riverMargin = 13) =>
     MAP.containsLand(x, z) &&
     MAP.coastDist(x, z) > shoreMargin &&
     MAP.riverDist(x, z) > riverMargin &&
-    !insideUrbanClearance(x, z);
+    !insideUrbanClearance(x, z) &&
+    !blockedByMan(x, z);
 
   const randomLandPoint = (shoreMargin = 16, riverMargin = 12) => {
     for (let attempt = 0; attempt < 180; attempt++) {

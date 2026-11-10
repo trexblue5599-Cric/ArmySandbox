@@ -24,7 +24,7 @@ world.initGlow = function() {
   const lamps = world.lampList;
   const positions = (y) => {
     const arr = new Float32Array(lamps.length * 3);
-    lamps.forEach((l, i) => { arr[i * 3] = l[0]; arr[i * 3 + 1] = y; arr[i * 3 + 2] = l[1]; });
+    lamps.forEach((l, i) => { arr[i * 3] = l[0]; arr[i * 3 + 1] = y + (world.groundAt ? world.groundAt(l[0], l[1]) : 0); arr[i * 3 + 2] = l[1]; });
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
     return geo;

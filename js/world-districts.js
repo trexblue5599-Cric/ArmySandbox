@@ -49,7 +49,7 @@ world.initDistricts = function() {
   const build = (px, py, w, d, h, style, tint, landmark) => {
     const [x0, z0] = toWorld([px, py]);
     if (!canBuild(x0, z0)) return null;
-    const fit = world.fitBuilding(x0, z0, w, d, landmark ? { scales: [1, 0.9, 0.82], maxR: 14, margin: 1 } : {});
+    const fit = world.fitBuilding(x0, z0, w, d, landmark ? { scales: [1, 0.9, 0.82], maxR: 14, margin: 1 } : { margin: 3 });   // ordinary blocks stand back from the kerb
     if (!fit) return landmark ? (world.building(x0, z0, w, d, h, style, tint), { x: x0, z: z0, w, d, h }) : null;
     world.building(fit.x, fit.z, fit.w, fit.d, h, style, tint);
     return { x: fit.x, z: fit.z, w: fit.w, d: fit.d, h };
@@ -58,7 +58,7 @@ world.initDistricts = function() {
     const [x, z] = toWorld([px, py]);
     if (world.isHeroHouse && world.isHeroHouse(x, z)) return;   // your house is built separately
     if (!canBuild(x, z)) return;
-    const fit = world.fitBuilding(x, z, 9, 9, { scales: [1], maxR: 16 });
+    const fit = world.fitBuilding(x, z, 9, 9, { scales: [1], maxR: 16, margin: 3.5 });
     if (fit) world.house(fit.x, fit.z, wall, roof);
   };
   const detailBox = (w, h, d, color, x, y, z) => {

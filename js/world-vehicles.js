@@ -4,8 +4,8 @@
 //   * buoys sit on the water
 // Change the numbers in TRAIN and BOATS below to move or speed them up.
 const TRAIN = {
-  X: -133,          // the railway runs north-south at this x
-  Z0: -196, Z1: 196,// where the track starts and ends
+  X: 240,           // the railway runs north-south at this x (a straight strip of land: no river, building or coast on it)
+  Z0: -160, Z1: 196,// where the track starts and ends
   SPEED: 14,        // units per second
   PAUSE: 3,         // seconds it waits at each end
   LOCO: 2.4, CAR: 2.7, GAP: 0.2,   // lengths of the locomotive and carriages
@@ -13,14 +13,14 @@ const TRAIN = {
            'vehicles/trains/train-carriage-tank.glb', 'vehicles/trains/train-carriage-container-blue.glb']
 };
 const BOATS = [
-  // from / to are the two ends of its route (in water); scale = how big it looks
-  { path: 'vehicles/ships/ship-ocean-liner.glb', from: [176, -24], to: [176, 36], scale: 1.2, speed: 3.5 },
-  { path: 'vehicles/ships/ship-cargo-b.glb',    from: [30, -160],  to: [210, -160], scale: 1.6, speed: 4 },
-  { path: 'vehicles/ships/boat-tug-c.glb',      from: [150, -100], to: [150, -52],  scale: 2.0, speed: 3 },
-  { path: 'vehicles/ships/boat-speed-e.glb',    from: [60, -205],  to: [60, -140],  scale: 2.0, speed: 7 },
-  { path: 'vehicles/ships/boat-house-c.glb',    from: [200, -84],  to: [200, -40],  scale: 1.8, speed: 2.5 }
+  // from / to are the two ends of its route. Every route was checked to be open sea, 40+ m from any coast.
+  { path: 'vehicles/ships/ship-ocean-liner.glb', from: [470, -120], to: [470, 120],  scale: 1.2, speed: 3.5 },   // east sea
+  { path: 'vehicles/ships/ship-cargo-b.glb',    from: [-300, -290], to: [250, -290], scale: 1.6, speed: 4 },     // north sea
+  { path: 'vehicles/ships/boat-tug-c.glb',      from: [-150, 290], to: [150, 290],  scale: 2.0, speed: 3 },     // south sea
+  { path: 'vehicles/ships/boat-speed-e.glb',    from: [-450, -150], to: [-450, 150], scale: 2.0, speed: 7 },    // west sea
+  { path: 'vehicles/ships/boat-house-c.glb',    from: [440, 150], to: [440, 205],   scale: 1.8, speed: 2.5 }     // off the harbour
 ];
-const BUOYS = [[140, -60], [60, -132], [176, -28], [200, -112]];
+const BUOYS = [[430, -60], [445, 0], [405, 200], [-430, -60], [-430, 100], [-100, 275], [100, 270]];   // all in open water
 
 world.initVehicles = function() {
   const loader = new THREE.GLTFLoader();
@@ -41,7 +41,7 @@ world.initVehicles = function() {
     const piece = standing(tpl, 1, 0.06);
     for (let z = TRAIN.Z0 + 2; z < TRAIN.Z1; z += 4) {
       const t = piece.clone(true);
-      t.position.set(TRAIN.X, 0, z);
+      t.position.set(TRAIN.X, world.groundAt ? world.groundAt(TRAIN.X, z) : 0, z);   // sits on the hills
       world.scene.add(t);
     }
   });
@@ -92,7 +92,8 @@ world.updateVehicles = function(dt) {
     let back = 0;
     tr.cars.forEach((c, i) => {
       const centre = back + c.len / 2;
-      c.g.position.set(TRAIN.X, 0, tr.front - tr.dir * centre);
+      const cz = tr.front - tr.dir * centre;
+      c.g.position.set(TRAIN.X, world.groundAt ? world.groundAt(TRAIN.X, cz) : 0, cz);
       c.g.rotation.y = tr.dir > 0 ? 0 : Math.PI;
       back += c.len + TRAIN.GAP;
     });

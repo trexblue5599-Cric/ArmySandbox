@@ -13,6 +13,7 @@ function startGame() {
   step("world.initOutskirts()", () => { world.initOutskirts(); });  // forests and mountains
   step("world.initFill()", () => { world.initFill(); });  // trees, bushes and paved slabs on the empty land
   step("world.initHarbour()", () => { world.initHarbour(); });  // harbour zone: pier, lighthouse, cranes, containers, rental hut
+  step("world.planLamps()", () => { world.planLamps(); });  // street lamps along the real roads (before the batches draw them)
   step("world.initBatches()", () => { world.initBatches(); });
   step("world.initTraffic()", () => { world.initTraffic(); });
   step("vehicleDrive.init()", () => { vehicleDrive.init(); });
