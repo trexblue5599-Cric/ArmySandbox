@@ -10,15 +10,14 @@ function startGame() {
   step("world.initBuildings()", () => { world.initBuildings(); });
   step("world.initDistricts()", () => { world.initDistricts(); });
   step("world.initMap()", () => { world.initMap(); });  // farmland, lake, harbour, airport, roads outside the city
+  step("world.initBridges()", () => { world.initBridges(); });  // bridges where roads cross rivers
   step("world.initOutskirts()", () => { world.initOutskirts(); });  // forests and mountains
   step("world.initFill()", () => { world.initFill(); });  // trees, bushes and paved slabs on the empty land
   step("world.initHarbour()", () => { world.initHarbour(); });  // harbour zone: pier, lighthouse, cranes, containers, rental hut
-  step("world.planLamps()", () => { world.planLamps(); });  // street lamps along the real roads (before the batches draw them)
   step("world.initBatches()", () => { world.initBatches(); });
   step("world.initTraffic()", () => { world.initTraffic(); });
   step("vehicleDrive.init()", () => { vehicleDrive.init(); });
   step("world.initPeople()", () => { world.initPeople(); });
-  step("world.initProps()", () => { world.initProps(); });  // .glb props from the props/ folder
   step("world.initVehicles()", () => { world.initVehicles(); });  // trains on the railway, boats on the water
   step("world.initGlow()", () => { world.initGlow(); });  // street lamps glow at night
   step("world.initUpdate()", () => { world.initUpdate(); });

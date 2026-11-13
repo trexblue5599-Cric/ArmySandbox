@@ -187,7 +187,13 @@ world.initMap = function() {
   if (!world.scene || !THREE) return;
 
   const { flat, obstacle } = world;
-  flat(2400, 2400, MAP.WATER, 0, -0.08, 0, 0.02);
+  // deep sea floor + see-through water on top: the islands now stand on a sloping seabed instead of floating on a flat sheet
+  const seabed = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), new THREE.MeshBasicMaterial({ color: 0x0a3f66 }));
+  seabed.rotation.x = -Math.PI / 2; seabed.position.y = -10;
+  world.scene.add(seabed);
+  const sea = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), new THREE.MeshLambertMaterial({ color: MAP.WATER, transparent: true, opacity: 0.74, depthWrite: false }));
+  sea.rotation.x = -Math.PI / 2; sea.position.y = -0.08; sea.renderOrder = -5;
+  world.scene.add(sea);
   world.mapRects.push({ kind: 'w', x: 0, z: 0, w: 2400, d: 2400 });
 
   const shapeFrom = (points, scale = 1) => {
@@ -254,6 +260,36 @@ world.initMap = function() {
     addPolygon(islet, MAP.SAND, 0.006, 1.11);
     addPolygon(islet, MAP.GRASS, 0.026, 1);
   });
+  // underwater slope around every island: beach -> shallow shelf -> steep drop -> deep sea (seen through the water)
+  const skirt = (points, scale) => {
+    const n = points.length;
+    const cx = points.reduce((a, p) => a + p[0], 0) / n, cz = points.reduce((a, p) => a + p[1], 0) / n;
+    const base = points.map(p => [cx + (p[0] - cx) * scale, cz + (p[1] - cz) * scale]);   // = the edge of the sand
+    let area = 0;
+    for (let i = 0; i < n; i++) { const j = (i + 1) % n; area += base[i][0] * base[j][1] - base[j][0] * base[i][1]; }
+    const sgn = area > 0 ? 1 : -1;
+    const rings = [[0, 0.0, [0.91, 0.80, 0.57]], [5, -1.0, [0.74, 0.66, 0.47]], [14, -3.5, [0.22, 0.46, 0.52]], [32, -9.0, [0.04, 0.25, 0.42]]];
+    const pos = [], col = [], idx = [];
+    rings.forEach(([d, y, c]) => base.forEach((p, i) => {
+      const a = base[(i - 1 + n) % n], b = base[(i + 1) % n];
+      let tx = b[0] - a[0], tz = b[1] - a[1]; const l = Math.hypot(tx, tz) || 1; tx /= l; tz /= l;
+      pos.push(p[0] + sgn * tz * d, y, p[1] - sgn * tx * d);
+      col.push(c[0], c[1], c[2]);
+    }));
+    for (let r = 0; r < rings.length - 1; r++) for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n, a = r * n + i, b = r * n + j, c = (r + 1) * n + i, d = (r + 1) * n + j;
+      idx.push(a, c, b, b, c, d);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.setIndex(idx); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+    m.frustumCulled = false;
+    world.scene.add(m);
+  };
+  skirt(MAP.COAST, 1.052);
+  MAP.ISLETS.forEach((islet) => skirt(islet, 1.11));
   addCoastLine(MAP.COAST, 1.061, 0.016, 0xc9fff1, 0.86);
   addCoastLine(MAP.COAST, 1.086, -0.018, 0x57d5e3, 0.56);
   MAP.ISLETS.forEach((islet) => {
@@ -272,8 +308,8 @@ world.initMap = function() {
     const rows = Math.ceil((maxZ - minZ) / step) + 1;
     const positions = new Float32Array(columns * rows * 3);
     const colors = new Float32Array(columns * rows * 3);
-    const baseColor = new THREE.Color(0x77b653);
-    const ridgeColor = new THREE.Color(0x598c42);
+    const baseColor = new THREE.Color(0x5f9d42);
+    const ridgeColor = new THREE.Color(0x477a37);
     const vertex = (column, row) => row * columns + column;
 
     for (let row = 0; row < rows; row++) {
