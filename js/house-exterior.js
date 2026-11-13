@@ -69,7 +69,8 @@ world.groundAt = (x, z) => {
   const y = MAP.heightAt(x, z);
   const lift = world.roadLift ? world.roadLift(x, z) : 0;       // roads / pavements / bridges stand a little above the grass
   if (lift > 0) return y + lift;
-  if (world.onDock && world.onDock(x, z)) return Math.max(y, world.DOCK_TOP);   // quay and piers
+  const dt = world.dockTop ? world.dockTop(x, z) : 0;
+  if (dt > 0) return Math.max(y, dt);                         // quay and piers
   return y;
 };
 

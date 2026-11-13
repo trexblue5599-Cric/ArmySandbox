@@ -28,14 +28,16 @@ world.inWaterAt = function(x, z) {
 
 // ---- quays and piers (registered by world-harbour.js): walkable even though they stick out over the sea ----
 world.docks = [];
-world.DOCK_TOP = 0.34;
-world.onDock = function(x, z) {
+// height of the quay surface at x,z (0 if it is not on a quay / pier)
+world.dockTop = function(x, z) {
+  let top = 0;
   for (const d of world.docks) {
     const c = Math.cos(d.rot), s = Math.sin(d.rot), dx = x - d.x, dz = z - d.z;
-    if (Math.abs(dx * c - dz * s) < d.w / 2 && Math.abs(dx * s + dz * c) < d.d / 2) return true;
+    if (Math.abs(dx * c - dz * s) < d.w / 2 && Math.abs(dx * s + dz * c) < d.d / 2 && d.top > top) top = d.top;
   }
-  return false;
+  return top;
 };
+world.onDock = function(x, z) { return world.dockTop(x, z) > 0; };
 
 // ---- how high the road surface is above the terrain (road 0.43, pavement 0.33, kerb 0.28) ----
 world.roadLift = function(x, z) {
@@ -125,27 +127,43 @@ world.randomWalkable = function() {
   return { x: 0, z: 0 };
 };
 
-// everyone who walks: pick a new place to go to, walk there, pick another
+// everyone who walks: pedestrians stay on the pavement and follow a street (never the grass or the road itself)
+world.pedPoint = function(p) {
+  // the point the ped is heading for: the next point on its street, moved sideways onto the pavement
+  const R = world.roadPaths[p.road], P = R.points;
+  const a = P[Math.max(0, Math.min(P.length - 1, p.idx))], b = P[Math.max(0, Math.min(P.length - 1, p.idx + p.dir))];
+  let dx = b[0] - a[0], dz = b[1] - a[1]; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+  const off = R.width / 2 + 1.5;                      // on the pavement, just outside the tarmac
+  return [b[0] - dz * off * p.side, b[1] + dx * off * p.side];
+};
+world.startPed = function(p) {
+  const n = world.roadPaths.length;
+  p.road = Math.floor(Math.random() * n);
+  const P = world.roadPaths[p.road].points;
+  p.idx = Math.floor(Math.random() * (P.length - 1)); p.dir = Math.random() < 0.5 ? 1 : -1; p.side = Math.random() < 0.5 ? 1 : -1;
+  const q = world.pedPoint(p); p.x = q[0]; p.z = q[1]; p.ready = true;
+};
 world.walkPeds = function(dt, px, pz) {
+  if (!world.roadPaths || !world.roadPaths.length) return;
   for (const p of world.peds) {
-    if (p.wait > 0) { p.wait -= dt; p.d.animate(dt, 0); p.g.visible = Math.hypot(px - p.x, pz - p.z) < 90; continue; }
-    if (!p.tx) {
-      const t = world.randomWalkableNear(p.x, p.z, 35) || world.randomWalkable();
-      p.tx = t.x; p.tz = t.z;
-    }
-    const dx = p.tx - p.x, dz = p.tz - p.z, dist = Math.hypot(dx, dz);
+    if (!p.ready) world.startPed(p);
+    const near = Math.hypot(px - p.x, pz - p.z) < 90;
+    if (p.wait > 0) { p.wait -= dt; p.d.animate(dt, 0); p.g.visible = near; continue; }
+    const R = world.roadPaths[p.road], last = R.points.length - 1;
+    const t = world.pedPoint(p);
+    const dx = t[0] - p.x, dz = t[1] - p.z, dist = Math.hypot(dx, dz);
     if (dist < 0.8) {
-      p.tx = null;
-      if (Math.random() < 0.3) p.wait = 2 + Math.random() * 4;   // sometimes stop for a moment
+      p.idx += p.dir;
+      if (p.idx + p.dir < 0 || p.idx + p.dir > last) { p.dir = -p.dir; p.side = -p.side; }   // end of the street: turn round
+      if (Math.random() < 0.01) p.wait = 2 + Math.random() * 4;                              // sometimes stop for a moment
       continue;
     }
     const step = Math.min(dist, p.speed * dt);
     const nx = p.x + dx / dist * step, nz = p.z + dz / dist * step;
-    if (world.walkable(nx, nz)) { p.x = nx; p.z = nz; }
-    else { p.tx = null; }                                       // blocked: choose another place
-    p.g.position.set(p.x, 0, p.z);
+    if (!world.collides(nx, nz, 0.35)) { p.x = nx; p.z = nz; }
+    else { p.dir = -p.dir; p.side = -p.side; p.idx = Math.max(0, Math.min(last - 1, p.idx)); p.wait = 0.3; }   // something in the way: go back
+    p.g.position.set(p.x, world.groundAt(p.x, p.z), p.z);     // feet on the pavement, not sunk into it
     p.g.rotation.y = Math.atan2(dx, dz);
-    const near = Math.hypot(px - p.x, pz - p.z) < 90;
     p.g.visible = near;
     if (near) p.d.animate(dt, p.speed);
   }

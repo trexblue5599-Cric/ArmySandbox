@@ -19,36 +19,36 @@ world.initHarbour = function() {
     const [x, z] = toWorld([px, py]);
     return box(w, h, d, color, x, bottomY, z, solid, rotation || 0);
   };
-  const dock = (w, d, px, py, rotation) => {
+  // every slab is a thick block whose top is a hair higher than the one under it, so overlapping slabs never flicker
+  const dock = (w, d, px, py, rotation, top) => {
     const [dx, dz] = toWorld([px, py]);
-    world.docks.push({ x: dx, z: dz, w, d, rot: rotation });          // you can walk on it
-    return boxFromPixels(w, 0.3, d, 0x777a78, px, py, false, rotation);   // low slab, top at 0.34
+    world.docks.push({ x: dx, z: dz, w, d, rot: rotation, top });     // you can walk on it
+    const mesh = box(w, 1.6, d, 0x80837f, dx, top - 1.6, dz, false, rotation);   // from 1.6 m below the top, so no gaps show
+    return mesh;
   };
 
-  // Broad quay with three narrow fingers extending into the eastern ocean.
+  // paved yard + broad quay + three narrow fingers reaching into the eastern ocean
   const quayAngle = -0.42;
-  dock(49, 13, 806, 393, quayAngle);
-  dock(31, 7, 827, 412, -0.05);
-  dock(31, 7, 850, 424, -0.12);
-  dock(24, 7, 858, 400, 0.23);
-  [790, 815, 840].forEach((px, index) => {
-    boxFromPixels(0.55, 1.2, 13, 0xd1c9b8, px, 393 + index * 8, true, quayAngle);
-  });
+  dock(72, 46, 790, 388, quayAngle, 0.30);        // the yard (concrete)
+  dock(49, 13, 806, 393, quayAngle, 0.32);        // quay
+  dock(31, 7, 827, 412, -0.05, 0.34);
+  dock(31, 7, 850, 424, -0.12, 0.36);
+  dock(24, 7, 858, 400, 0.23, 0.38);
 
-  // Warehouse row and colorful cargo stacks.
-  // (a shed or container that would sit on the road is slid aside, or left out if there is no room)
-  const clearSpot = (x, z, w, d) => world.fitBuilding(x, z, w, d, { scales: [1], maxR: 14, margin: 1, dockOk: true });
-  [[760, 380], [782, 388], [803, 398]].forEach((p, index) => {
-    const [x, z] = toWorld(p);
-    const f = clearSpot(x, z, 18, 13); if (!f) return;
-    box(18, 7 + (index % 2), 13, [0x78909c, 0xb2794d, 0x657e89][index], f.x, 0.05, f.z, true, -0.42);
-  });
+  // neat rows of cargo containers on the yard, either side of the quay road (left out where they would touch a road)
   const containerColors = [0xc94535, 0x246aa0, 0xe18b32, 0x3e8050, 0xd1a52f, 0x724d8d];
-  [[787, 379], [797, 381], [807, 386], [817, 389], [792, 386], [802, 390], [812, 395], [822, 399]].forEach((p, i) => {
-    const [cx, cz] = toWorld(p);
-    const f = clearSpot(cx, cz, 8, 4.6); if (!f) return;
-    box(8, 3.1, 4.6, containerColors[i % containerColors.length], f.x, 0.04, f.z, true, -0.42);
-    if (i < 4) box(8, 3.1, 4.6, containerColors[(i + 2) % containerColors.length], f.x, 3.14, f.z, true, -0.42);
+  const [yx, yz] = toWorld([790, 388]);
+  const yc = Math.cos(quayAngle), ys = Math.sin(quayAngle);
+  let ci = 0;
+  [-20, -15, -10, 10, 15, 20].forEach((v, row) => {
+    for (let u = -30; u <= 30; u += 9) {
+      const cx = yx + u * yc + v * ys, cz = yz - u * ys + v * yc;
+      if (!world.footprintClear(cx, cz, 8.6, 5, 2, false, true)) continue;
+      if (!world.onDock(cx, cz)) continue;
+      const color = containerColors[ci++ % containerColors.length];
+      box(8, 2.6, 4.4, color, cx, 0.30, cz, true, quayAngle);
+      if ((ci + row) % 3 === 0) box(8, 2.6, 4.4, containerColors[(ci + 2) % containerColors.length], cx, 2.9, cz, true, quayAngle);
+    }
   });
 
   // Two dock cranes with tall legs, cross-bracing, and booms.
@@ -72,15 +72,26 @@ world.initHarbour = function() {
   crane(818, 385, -0.42);
   crane(846, 405, -0.24);
 
-  // Mooring posts, dock lights, and simple small cargo boats.
+  // Mooring posts on the fingers, and simple small cargo boats
   [[820, 414], [841, 427], [864, 418], [878, 399]].forEach((p) => {
     const [x, z] = toWorld(p);
+    const top = (world.dockTop ? world.dockTop(x, z) : 0) || 0.1;
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.6, 2.2, 8), material(0x493e32));
-    post.position.set(x, 1.1, z);
+    post.position.set(x, top + 1.1, z);
     world.scene.add(post);
   });
+  // a boat only floats where all round it (about 7 m) is open sea: slide it out until it is
+  const seaSpot = (x, z) => {
+    const clear = (a, b) => [[0, 0], [7, 0], [-7, 0], [0, 7], [0, -7], [5, 5], [-5, -5], [5, -5], [-5, 5]]
+      .every(([dx, dz]) => !MAP.containsLand(a + dx, b + dz) && !world.onDock(a + dx, b + dz));
+    for (let r = 0; r < 120; r += 2) for (let k = 0; k < 16; k++) {
+      const ang = (k / 16) * Math.PI * 2, a = x + Math.cos(ang) * r, b = z + Math.sin(ang) * r;
+      if (clear(a, b)) return [a, b];
+    }
+    return [x, z];
+  };
   const boat = (px, py, scale, rotation, color) => {
-    const [x, z] = toWorld([px, py]);
+    const [x, z] = seaSpot(...toWorld([px, py]));
     const group = new THREE.Group();
     const hull = new THREE.Mesh(new THREE.ConeGeometry(2.3 * scale, 8 * scale, 4), material(color));
     hull.rotation.x = Math.PI / 2;

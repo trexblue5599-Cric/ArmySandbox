@@ -5,6 +5,20 @@ world.initRoads = function() {
   if (!world.scene || !THREE || typeof MAP === 'undefined') return;
 
   const toWorld = ([px, py]) => [(px - 495) * 0.97, (py - 260) * 0.97];
+  // round off sharp corners (keeps both ends): sharp bends made the wide kerb strips fold over themselves
+  const chaikin = (pts, rounds) => {
+    const closed = pts.length > 3 && pts[0][0] === pts[pts.length - 1][0] && pts[0][1] === pts[pts.length - 1][1];
+    for (let r = 0; r < rounds; r++) {
+      const out = closed ? [] : [pts[0]];
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i], b = pts[i + 1];
+        out.push([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25], [a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75]);
+      }
+      if (closed) out.push(out[0]); else out.push(pts[pts.length - 1]);
+      pts = out;
+    }
+    return pts;
+  };
   const paths = [
     { name: 'city-loop', width: 14, points: [[377, 278], [395, 289], [416, 306], [439, 323], [458, 342], [478, 364], [501, 382], [524, 394], [550, 397], [578, 392], [605, 382], [631, 366], [656, 348], [680, 330], [703, 312], [721, 292], [730, 274], [716, 258], [696, 244], [674, 228], [651, 211], [628, 198], [605, 192], [583, 196], [561, 208], [540, 223], [519, 239], [497, 254], [474, 265], [451, 273], [428, 280], [402, 286], [377, 278]] },
     { name: 'north-arterial', width: 12, points: [[607, 171], [594, 188], [578, 204], [559, 219], [540, 235], [519, 251], [498, 267], [478, 284], [458, 302], [438, 321]] },
@@ -23,7 +37,33 @@ world.initRoads = function() {
     { name: 'suburb-loop', width: 8, points: [[185, 284], [204, 271], [228, 269], [250, 279], [263, 298], [257, 318], [237, 329], [213, 324], [196, 307], [185, 284]] },
     { name: 'town-street', width: 7, points: [[298, 103], [319, 112], [341, 122], [360, 135], [376, 151]] },
     { name: 'harbour-quay-road', width: 8, points: [[758, 378], [781, 388], [804, 397], [829, 404]] }
-  ].map((road) => ({ ...road, points: road.points.map(toWorld) }));
+  ].map((road) => ({ ...road, points: chaikin(road.points.map(toWorld), 2) }));
+
+  // join the roads up: a road that ends a little short of another road (up to 30 m) is stretched onto it,
+  // so every street really connects. Longer gaps are real dead ends (safehouse, town street) and are left alone.
+  const nearestOnRoads = (p, self) => {
+    let best = null;
+    paths.forEach((o) => {
+      if (o === self) return;
+      for (let i = 0; i < o.points.length - 1; i++) {
+        const a = o.points[i], b = o.points[i + 1], dx = b[0] - a[0], dz = b[1] - a[1], l2 = dx * dx + dz * dz;
+        let t = l2 ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / l2 : 0; t = Math.max(0, Math.min(1, t));
+        const x = a[0] + dx * t, z = a[1] + dz * t, d = Math.hypot(p[0] - x, p[1] - z);
+        if (!best || d < best.d) best = { d, x, z };
+      }
+    });
+    return best;
+  };
+  const snaps = [];
+  paths.forEach((road) => {
+    const P = road.points;
+    if (P[0][0] === P[P.length - 1][0] && P[0][1] === P[P.length - 1][1]) return;     // closed loops are fine
+    [0, P.length - 1].forEach((idx) => {
+      const n = nearestOnRoads(P[idx], road);
+      if (n && n.d > 0.4 && n.d <= 30) snaps.push([road, idx, [n.x, n.z]]);
+    });
+  });
+  snaps.forEach(([road, idx, pt]) => { road.points[idx] = pt; });
 
   world.roadPaths = paths;
   world.roadCenterlines = paths.map(({ name, points, width }) => ({ name, points, width }));
@@ -35,8 +75,8 @@ world.initRoads = function() {
     polygonOffsetFactor: -1,
     polygonOffsetUnits: -1
   });
-  const curbMaterial = new THREE.MeshLambertMaterial({ color: 0x777b76, side: THREE.DoubleSide });
-  const sidewalkMaterial = new THREE.MeshLambertMaterial({ color: 0xb9b6a8, side: THREE.DoubleSide });
+  const curbMaterial = new THREE.MeshLambertMaterial({ color: 0x5f625e, side: THREE.DoubleSide });
+  const sidewalkMaterial = new THREE.MeshLambertMaterial({ color: 0x8a877d, side: THREE.DoubleSide });
 
   // add a point every ~3 m so the road hugs the hills (a point every 25 m let the grass poke through)
   const densify = (pts, step = 3) => {
